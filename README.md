@@ -151,6 +151,6 @@ Running using Vagrant is recommended.
 
 
 ## Further details for ConsenSys development Program:
-- User Stories :
-- Avoiding Common Attacks :
-- Design Pattern Decisions :
+  - <a href="https://github.com/samuelerodi/ZtickerZ/blob/master/user_stories.md">User Stories</a>
+  - <a href="https://github.com/samuelerodi/ZtickerZ/blob/master/avoiding_common_attacks.md">Avoiding Common Attacks</a>
+  - <a href="https://github.com/samuelerodi/ZtickerZ/blob/master/design_pattern_decision.md">Design Pattern Decisions</a>
