@@ -19,6 +19,9 @@ coverage
 coverage.json
 coverageEnv
 
+# Wiki
+wiki
+
 # node-waf configuration
 .lock-wscript
 
