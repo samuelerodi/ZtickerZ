@@ -64,11 +64,6 @@ Running using Vagrant is recommended.
     ```javascript
     vagrant ssh
     ```
-4. You can start the frontend in development mode with
-    ```javascript
-    npm start
-    ```
-5. Navigate using your browser to localhost:3000 making sure to have Metamask or an alternative wallet installed and you are ready to play
 
 ### Need a build version?
 1. Compile contracts with
@@ -78,10 +73,6 @@ Running using Vagrant is recommended.
 2. Migrate them anywhere you need with
     ```javascript
     truffle migrate
-    ```
-3. Create the app build with
-    ```javascript
-    npm run build
     ```
 
 ### Optional hack for development usability
@@ -132,22 +123,12 @@ Running using Vagrant is recommended.
     truffle migrate
     ```
 
-5. Run the webpack server for front-end hot reloading (outside the development console). Smart contract changes must be manually recompiled and migrated.
-    ```javascript
-    // Serves the front-end on http://localhost:3000
-    npm start
-    ```
 
-6. Run tests against your smart contracts. Note the command varies slightly if you're in or outside of the development console.
+5. Run tests against your smart contracts. Note the command varies slightly if you're in or outside of the development console.
     ```javascript
     truffle test
     ```
 
-
-7. To build the application for production, use the build command. A production build will be in the build folder.
-    ```javascript
-    npm run build
-    ```
 
 
 ## Further details for ConsenSys development Program:
