@@ -137,11 +137,11 @@ contract ZtickerZ is Destructible, DecentralizedMarket, SeedGenerator, TipsManag
 
     uint16 _n = albums[_albumId].nStickers;
     uint16 _l = 5;              //This is the only hardcoded params and it gives pretty good scarcity within a range of 10-1000 stickers per album
-    uint16 _m = (_n / _l) + 1;  //+1 to avoid zeroes
+    uint16 _m = (_n / _l);  //+1 to avoid zeroes
 
     uint256 _a = uint256(bytes10(_sId << 160)) % _n;
-    uint256 _b = uint256(bytes10(_sId << 80)) % _m;
-    uint256 _c = uint256(bytes10(_sId)) % _l;
+    uint256 _b = uint256(bytes10(_sId << 80)) % (_m + 1);
+    uint256 _c = uint256(bytes10(_sId)) % (_l + 1);
     uint256 _o = _a + _b * _c;
 
     //Residuals are used to rebalance in case _stn >= N
@@ -343,11 +343,11 @@ contract ZtickerZ is Destructible, DecentralizedMarket, SeedGenerator, TipsManag
     ///AVOID STACK TOO DEEP
     Album storage _a = albums[_albumId];
     uint256 _supply = coinContract.totalSupply();
-    require(_a.mintedCoins.sub(_a.burntCoins)>=_coinToBurn, 'Should not exceed maximum burnable');
+    require(_a.mintedCoins.sub(_a.burntCoins)>_coinToBurn, 'Should not exceed maximum burnable');
     require(_coinToBurn>0, 'Should burn some coin');
     //cRatio
     uint256 _cRatio = _coinToBurn.mul(1000);                                    //0 >= coin ratio on album <= 1000
-            _cRatio = _cRatio.div(_a.mintedCoins);
+            _cRatio = _cRatio.div(_a.mintedCoins - _a.burntCoins);
     //eRatio
     uint256 _eRatio = _a.ethReceived;                                           //0 >= eth ratio on album <= 1000
             _eRatio = _eRatio.mul(1000);
