@@ -345,9 +345,9 @@ contract ZtickerZ is Destructible, DecentralizedMarket, SeedGenerator, TipsManag
     uint256 _supply = coinContract.totalSupply();
     require(_a.mintedCoins.sub(_a.burntCoins)>_coinToBurn, 'Should not exceed maximum burnable');
     require(_coinToBurn>0, 'Should burn some coin');
-    //cRatio
-    uint256 _cRatio = _coinToBurn.mul(1000);                                    //0 >= coin ratio on album <= 1000
-            _cRatio = _cRatio.div(_a.mintedCoins - _a.burntCoins);
+    //aRatio
+    uint256 _aRatio = _coinToBurn.mul(1000);                                    //0 >= album ratio on album <= 1000
+            _aRatio = _aRatio.div(_a.mintedCoins - _a.burntCoins);
     //eRatio
     uint256 _eRatio = _a.ethReceived;                                           //0 >= eth ratio on album <= 1000
             _eRatio = _eRatio.mul(1000);
@@ -363,7 +363,7 @@ contract ZtickerZ is Destructible, DecentralizedMarket, SeedGenerator, TipsManag
     //total
     uint256 _total = address(this).balance
                               .mul(_eRatio)
-                              .mul(_cRatio)
+                              .mul(_aRatio)
                               .mul(_vrRatio)
                               .mul(_srRatio)
                               .div(1000000000000);
