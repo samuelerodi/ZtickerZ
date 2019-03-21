@@ -1,63 +1,32 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.7;
 
-import './utils/Backend.sol';
-import './utils/MarketInterface.sol';
-import 'openzeppelin-solidity/contracts/ownership/HasNoEther.sol';
-import 'openzeppelin-solidity/contracts/token/ERC20/PausableToken.sol';
-import 'openzeppelin-solidity/contracts/token/ERC20/BurnableToken.sol';
-
-
-
-// ZtickyCoinZ AVAILABLE FUNCTIONS
-// function mint(address _to, uint256 _amount) onlyFrontend whenNotPaused public returns (bool);
-// function burn(uint256 _value) public onlyFrontend whenNotPaused;
-// function buyAndTransfer(uint256 _stickerId) public whenNotPaused returns(bool);
-// function transfer(address _to, uint256 _value) public whenNotPaused returns (bool)
-// function transferFrom(address _from, address _to, uint256 _value) public whenNotPaused returns (bool)
-// function approve(address _spender,  uint256 _value) public whenNotPaused returns (bool)
-// function increaseApproval(address _spender,  uint _addedValue) public whenNotPaused returns (bool success)
-// function decreaseApproval(address _spender,  uint _subtractedValue) public whenNotPaused returns (bool success)
-// function allowance(address _owner, address _spender) public view returns (uint256)
-// function balanceOf(address _owner) public view returns (uint256)
-// function totalSupply() public view returns (uint256)
-// function pause() onlyOwner whenNotPaused public
-// function unpause() onlyOwner whenPaused public
-// function reclaimEther() external onlyOwner
-// function changeFrontend(address _newFrontend) public onlyOwner
+import './backend/Backend.sol';
+import './utils/HasNoEther.sol';
+import './ERC20/ERC20Pausable.sol';
+import './ERC20/ERC20Detailed.sol';
 
 /**
- * @title StickyCoin
- * @dev The StickyCoin contract is a backend ERC20 token contract which collects the StickyCoin associated
- * to the ZtickerZ contract. It is mostly a standard ERC20 token plus basic functions in order to
- * mint and burn coins callable from the frontend contract and a function to directly buy stickers
- * from the frontend market contract. The separation has been conceived for upgradability reasons
+ * @title ZtickyCoinZ
+ * @dev The ZtickyCoinZ contract is a backend ERC20 token contract which collects the ZtickyCoinZ associated
+ * to the ZtickerZ contract. It is mostly a standard ERC20 token plus functions accessible
+ * from the frontend contract. The separation has been conceived for upgradability reasons
  * while keeping the contracts as flexible as possible.
  */
-contract ZtickyCoinZ is BurnableToken, PausableToken, HasNoEther, Backend(address(0)) {
-  string public name = "ZtickyCoinZ";
-  string public symbol = "ZCZ";
-  uint8 public decimals = 18;
+contract ZtickyCoinZ is ERC20Pausable, ERC20Detailed("ZtickyCoinZ","ZCZ", 18), HasNoEther, Backend {
 
-  event Mint(address indexed to, uint256 amount);
   /**
    * @dev Function to mint tokens
    * @param _to The address that will receive the minted tokens.
    * @param _amount The amount of tokens to mint.
    * @return A boolean that indicates if the operation was successful.
    */
-  function mint(
-    address _to,
-    uint256 _amount
-  )
+  function mint(address _to, uint256 _amount)
     onlyFrontend
     whenNotPaused
     public
     returns (bool)
   {
-    totalSupply_ = totalSupply_.add(_amount);
-    balances[_to] = balances[_to].add(_amount);
-    emit Mint(_to, _amount);
-    emit Transfer(address(0), _to, _amount);
+    ERC20Pausable._mint(to, _amount);
     return true;
   }
 
@@ -69,24 +38,41 @@ contract ZtickyCoinZ is BurnableToken, PausableToken, HasNoEther, Backend(addres
   function burn(uint256 _value) public
   onlyFrontend
   whenNotPaused
-  {
-    //tx.origin because only the legitimate owner should be allowed to burn its own coin
-    BurnableToken._burn(tx.origin, _value);
-  }
-
-  /**
-   * @dev This function allows to send directly tokens to market contract in order to trade for specific sticker.
-   * @param _stickerId The unique id of the sticker to be bought.
-   */
-  function buyAndTransfer(uint256 _stickerId)
-  public
-  whenNotPaused
   returns(bool)
   {
-    (, uint256 price) = MarketInterface(frontend).getItemOnSale(_stickerId);
-    require(price <= balances[msg.sender], 'Price should be lower than balance');
-    PausableToken.approve(frontend, price);
-    MarketInterface(frontend).sellItem(_stickerId, msg.sender);
+    //tx.origin because only the legitimate caller is allowed to burn coin
+    ERC20Pausable._burn(tx.origin, _value);
+    return true;
+  }
+
+  // /**
+  //  * @dev This function allows to send directly tokens to market contract in order to trade for specific sticker.
+  //  * @param _stickerId The unique id of the sticker to be bought.
+  //  */
+  // function buyAndTransfer(uint256 _stickerId)
+  // public
+  // whenNotPaused
+  // returns(bool)
+  // {
+  //   (, uint256 price) = MarketInterface(frontend).getItemOnSale(_stickerId);
+  //   require(price <= balances[msg.sender], 'Price should be lower than balance');
+  //   PausableToken.approve(frontend, price);
+  //   MarketInterface(frontend).sellItem(_stickerId, msg.sender);
+  //   return true;
+  // }
+
+  /**
+   * @dev This function allows the frontend contract to directly withdraw from user balance in order
+   * to reduce user interactions when invoked from logic contract.
+   * @param spender The address of the approved spender.
+   * @param value The amount of approval.
+   */
+  function frontendApprove(address spender, uint256 value) public
+  onlyFrontend
+  whenNotPaused
+  returns (bool) {
+    //tx.origin because only the legitimate caller is allowed to grant approval
+    ERC20Pausable._approve(tx.origin, spender, value);
     return true;
   }
 

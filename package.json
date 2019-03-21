@@ -7,7 +7,7 @@
     "drizzle": "^1.2.2",
     "eth-block-tracker-es5": "^2.3.2",
     "ethereumjs-testrpc": "^6.0.3",
-    "openzeppelin-solidity": "^1.11.0",
+    "openzeppelin-solidity": "2.2.0",
     "react": "^16.4.2",
     "react-dom": "^16.4.2",
     "react-redux": "^5.0.2",
@@ -20,6 +20,7 @@
     "redux-auth-wrapper": "^1.0.0",
     "redux-saga": "^0.15.3",
     "redux-thunk": "^2.3.0",
+    "truffle": "^5.0.8",
     "truffle-contract": "^1.1.8",
     "web3": "^0.20.7"
   },

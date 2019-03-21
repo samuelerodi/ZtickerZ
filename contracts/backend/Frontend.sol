@@ -1,6 +1,6 @@
 pragma solidity ^0.4.24;
 
-import 'openzeppelin-solidity/contracts/ownership/Ownable.sol';
+import '../utils/Ownable.sol';
 
 import '../ZtickyCoinZ.sol';
 import '../ZtickyZtorage.sol';
