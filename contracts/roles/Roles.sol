@@ -6,6 +6,7 @@ import "../utils/Counters.sol";
  * @dev Library for managing addresses assigned to a Role.
  */
 library Roles {
+    using Counters for Counters.Counter;
     struct Role {
         mapping (address => bool) bearer;
         Counters.Counter size;

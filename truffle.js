@@ -2,6 +2,17 @@ const secret = require("./secret");
 const HDWalletProvider = require("truffle-hdwallet-provider");
 
 module.exports = {
+  compilers: {
+    solc: {
+      version: "^0.5.2", // A version or constraint - Ex. "^0.5.0"
+      settings: {
+        optimizer: {
+          enabled: true,
+          runs: 500   // Optimize for how many times you intend to run the code
+        }
+      }
+    }
+  },
   migrations_directory: "./migrations",
   networks: {
     development: {

@@ -1,4 +1,4 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.5.2;
 
 /**
  * @title Array256 Library
@@ -37,7 +37,7 @@ library ArrayUtils {
       mstore(0x60,self_slot)
 
       for { let i := 0 } lt(i, sload(self_slot)) { i := add(i, 1) } {
-        sum := add(sload(add(sha3(0x60,0x20),i)),sum)
+        sum := add(sload(add(keccak256(0x60,0x20),i)),sum)
       }
     }
   }
@@ -48,12 +48,12 @@ library ArrayUtils {
   function getMax(uint256[] storage self) public view returns(uint256 maxValue) {
     assembly {
       mstore(0x60,self_slot)
-      maxValue := sload(sha3(0x60,0x20))
+      maxValue := sload(keccak256(0x60,0x20))
 
       for { let i := 0 } lt(i, sload(self_slot)) { i := add(i, 1) } {
-        switch gt(sload(add(sha3(0x60,0x20),i)), maxValue)
+        switch gt(sload(add(keccak256(0x60,0x20),i)), maxValue)
         case 1 {
-          maxValue := sload(add(sha3(0x60,0x20),i))
+          maxValue := sload(add(keccak256(0x60,0x20),i))
         }
       }
     }
@@ -65,12 +65,12 @@ library ArrayUtils {
   function getMin(uint256[] storage self) public view returns(uint256 minValue) {
     assembly {
       mstore(0x60,self_slot)
-      minValue := sload(sha3(0x60,0x20))
+      minValue := sload(keccak256(0x60,0x20))
 
       for { let i := 0 } lt(i, sload(self_slot)) { i := add(i, 1) } {
-        switch gt(sload(add(sha3(0x60,0x20),i)), minValue)
+        switch gt(sload(add(keccak256(0x60,0x20),i)), minValue)
         case 0 {
-          minValue := sload(add(sha3(0x60,0x20),i))
+          minValue := sload(add(keccak256(0x60,0x20),i))
         }
       }
     }
@@ -96,12 +96,12 @@ library ArrayUtils {
         for { } iszero(gt(low, high)) { } {
           mid := div(add(low,high),2)
 
-          switch lt(sload(add(sha3(0x60,0x20),mid)),value)
+          switch lt(sload(add(keccak256(0x60,0x20),mid)),value)
           case 1 {
              low := add(mid,1)
           }
           case 0 {
-            switch gt(sload(add(sha3(0x60,0x20),mid)),value)
+            switch gt(sload(add(keccak256(0x60,0x20),mid)),value)
             case 1 {
               high := sub(mid,1)
             }
@@ -115,7 +115,7 @@ library ArrayUtils {
       }
       case 0 {
         for { let low := 0 } lt(low, sload(self_slot)) { low := add(low, 1) } {
-          switch eq(sload(add(sha3(0x60,0x20),low)), value)
+          switch eq(sload(add(keccak256(0x60,0x20),low)), value)
           case 1 {
             found := 1
             index := low

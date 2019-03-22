@@ -1,45 +1,45 @@
-pragma solidity ^0.5.7;
+pragma solidity ^0.5.2;
 
 interface ZtickyCoinZInterface {
   //BASE
-  function mint(address _to, uint256 _amount) public returns(bool);
-  function burn(uint256 _value) public returns(bool);
-  function frontendApprove(address spender, uint256 value) public returns (bool);
+  function mint(address _to, uint256 _amount) external returns(bool);
+  function burn(uint256 _value) external returns(bool);
+  function frontendApprove(address spender, uint256 value) external returns (bool);
   //ERC20
-  function totalSupply() public view returns (uint256);
-  function balanceOf(address owner) public view returns (uint256);
-  function allowance(address owner, address spender) public view returns (uint256);
+  function totalSupply() external view returns (uint256);
+  function balanceOf(address owner) external view returns (uint256);
+  function allowance(address owner, address spender) external view returns (uint256);
   //ERC20Detailed
-  function name() public view returns (string memory);
-  function symbol() public view returns (string memory);
-  function decimals() public view returns (uint8);
+  function name() external view returns (string memory);
+  function symbol() external view returns (string memory);
+  function decimals() external view returns (uint8);
   //ERC20Pausable
-  function transfer(address to, uint256 value) public returns (bool);
-  function transferFrom(address from, address to, uint256 value) public returns (bool);
-  function approve(address spender, uint256 value) public returns (bool);
-  function increaseAllowance(address spender, uint addedValue) public returns (bool success);
-  function decreaseAllowance(address spender, uint subtractedValue) public returns (bool success);
+  function transfer(address to, uint256 value) external returns (bool);
+  function transferFrom(address from, address to, uint256 value) external returns (bool);
+  function approve(address spender, uint256 value) external returns (bool);
+  function increaseAllowance(address spender, uint addedValue) external returns (bool success);
+  function decreaseAllowance(address spender, uint subtractedValue) external returns (bool success);
   //Pausable
-  function paused() public view returns (bool);
-  function pause() public;
-  function unpause() public;
+  function paused() external view returns (bool);
+  function pause() external;
+  function unpause() external;
   //PauserRole
-  function isPauser(address account) public view returns (bool);
-  function addPauser(address account) public;
-  function renouncePauser() public;
+  function isPauser(address account) external view returns (bool);
+  function addPauser(address account) external;
+  function renouncePauser() external;
   //Ownable
-  function owner() public view returns (address);
-  function isOwner() public view returns (bool);
-  function transferOwnership(address newOwner) public;
+  function owner() external view returns (address);
+  function isOwner() external view returns (bool);
+  function transferOwnership(address newOwner) external;
   //Backend
-  function isFrontend(address account) public view returns (bool);
-  function addFrontend(address account) public;
-  function removeFrontend(address account) public;
+  function isFrontend(address account) external view returns (bool);
+  function addFrontend(address account) external;
+  function removeFrontend(address account) external;
   //BackendAdmin
-  function isBackendAdmin(address account) public view returns (bool);
-  function addBackendAdmin(address account) public;
-  function removeBackendAdmin(address account) public;
-  function renounceBackendAdmin() public;
+  function isBackendAdmin(address account) external view returns (bool);
+  function addBackendAdmin(address account) external;
+  function removeBackendAdmin(address account) external;
+  function renounceBackendAdmin() external;
   //HasNoEther
   function reclaimEther() external;
   function() external;

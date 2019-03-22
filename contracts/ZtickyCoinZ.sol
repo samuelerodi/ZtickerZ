@@ -1,4 +1,4 @@
-pragma solidity ^0.5.7;
+pragma solidity ^0.5.2;
 
 import './backend/Backend.sol';
 import './utils/HasNoEther.sol';
@@ -26,7 +26,7 @@ contract ZtickyCoinZ is ERC20Pausable, ERC20Detailed("ZtickyCoinZ","ZCZ", 18), H
     public
     returns (bool)
   {
-    ERC20Pausable._mint(to, _amount);
+    ERC20._mint(_to, _amount);
     return true;
   }
 
@@ -36,12 +36,12 @@ contract ZtickyCoinZ is ERC20Pausable, ERC20Detailed("ZtickyCoinZ","ZCZ", 18), H
    * @param _value The amount of token to be burned.
    */
   function burn(uint256 _value) public
-  onlyFrontend
-  whenNotPaused
-  returns(bool)
+    onlyFrontend
+    whenNotPaused
+    returns(bool)
   {
     //tx.origin because only the legitimate caller is allowed to burn coin
-    ERC20Pausable._burn(tx.origin, _value);
+    ERC20._burn(tx.origin, _value);
     return true;
   }
 
@@ -67,12 +67,13 @@ contract ZtickyCoinZ is ERC20Pausable, ERC20Detailed("ZtickyCoinZ","ZCZ", 18), H
    * @param spender The address of the approved spender.
    * @param value The amount of approval.
    */
-  function frontendApprove(address spender, uint256 value) public
-  onlyFrontend
-  whenNotPaused
-  returns (bool) {
+  function authorizedApprove(address spender, uint256 value) public
+    onlyFrontend
+    whenNotPaused
+    returns (bool)
+  {
     //tx.origin because only the legitimate caller is allowed to grant approval
-    ERC20Pausable._approve(tx.origin, spender, value);
+    ERC20._approve(tx.origin, spender, value);
     return true;
   }
 

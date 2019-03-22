@@ -1,4 +1,4 @@
-// pragma solidity ^0.4.24;
+pragma solidity ^0.5.2;
 //
 // contract MarketInterface {
 //     function publishToMarket(uint256 _stickerId, address _seller, uint256 _price) public returns(bool);
