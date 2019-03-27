@@ -1,6 +1,6 @@
 pragma solidity ^0.5.2;
 
-import "./ERC20.sol";
+import "../ERC20/ERC20.sol";
 import "../utils/Pausable.sol";
 
 /**

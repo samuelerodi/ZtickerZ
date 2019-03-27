@@ -1,10 +1,12 @@
 pragma solidity ^0.5.2;
 
-interface ZtickyCoinZInterface {
+interface ZtickyCoinZ {
   //BASE
   function mint(address _to, uint256 _amount) external returns(bool);
   function burn(uint256 _value) external returns(bool);
-  function frontendApprove(address spender, uint256 value) external returns (bool);
+  function authorizedApprove(address spender, uint256 value) external returns (bool);
+
+
   //ERC20
   function totalSupply() external view returns (uint256);
   function balanceOf(address owner) external view returns (uint256);
@@ -32,6 +34,7 @@ interface ZtickyCoinZInterface {
   function isOwner() external view returns (bool);
   function transferOwnership(address newOwner) external;
   //Backend
+  function isBackend() external pure returns (bool);
   function isFrontend(address account) external view returns (bool);
   function addFrontend(address account) external;
   function removeFrontend(address account) external;

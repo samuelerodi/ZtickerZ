@@ -1,7 +1,7 @@
 pragma solidity ^0.5.2;
 
 import "../roles/Roles.sol";
-import "./BackendAdmin.sol";
+import "../roles/BackendAdmin.sol";
 
 /**
  * @title Backend
@@ -11,8 +11,8 @@ import "./BackendAdmin.sol";
 contract Backend is BackendAdmin {
     using Roles for Roles.Role;
 
-    event FrontendAdded(address indexed account);
-    event FrontendRemoved(address indexed account);
+    event FrontendAdded(address indexed contractAddress);
+    event FrontendRemoved(address indexed contractAddress);
 
     Roles.Role private _frontends;
 
@@ -21,25 +21,29 @@ contract Backend is BackendAdmin {
         _;
     }
 
-    function isFrontend(address account) public view returns (bool) {
-        return _frontends.has(account);
+    function isBackend() public pure returns (bool) {
+        return true;
     }
 
-    function addFrontend(address account) public onlyBackendAdmin {
-        _addFrontend(account);
+    function isFrontend(address contractAddress) public view returns (bool) {
+        return _frontends.has(contractAddress);
     }
 
-    function removeFrontend(address account) public onlyBackendAdmin {
-        _removeFrontend(account);
+    function addFrontend(address contractAddress) public onlyBackendAdmin {
+        _addFrontend(contractAddress);
     }
 
-    function _addFrontend(address account) internal {
-        _frontends.add(account);
-        emit FrontendAdded(account);
+    function removeFrontend(address contractAddress) public onlyBackendAdmin {
+        _removeFrontend(contractAddress);
     }
 
-    function _removeFrontend(address account) internal {
-        _frontends.remove(account);
-        emit FrontendRemoved(account);
+    function _addFrontend(address contractAddress) internal {
+        _frontends.add(contractAddress);
+        emit FrontendAdded(contractAddress);
+    }
+
+    function _removeFrontend(address contractAddress) internal {
+        _frontends.remove(contractAddress);
+        emit FrontendRemoved(contractAddress);
     }
 }

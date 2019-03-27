@@ -1,6 +1,6 @@
 pragma solidity ^0.5.2;
 
-import "./Math.sol";
+import "../utils/Math.sol";
 
 
 /**

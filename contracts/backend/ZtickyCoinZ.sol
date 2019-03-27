@@ -1,9 +1,10 @@
 pragma solidity ^0.5.2;
 
-import './backend/Backend.sol';
-import './utils/HasNoEther.sol';
-import './ERC20/ERC20Pausable.sol';
-import './ERC20/ERC20Detailed.sol';
+import '../backend/Backend.sol';
+import '../utils/HasNoEther.sol';
+import '../ERC20/ERC20Pausable.sol';
+import '../ERC20/ERC20Metadata.sol';
+import '../ERC20/ERC20Detailed.sol';
 
 /**
  * @title ZtickyCoinZ
@@ -12,7 +13,10 @@ import './ERC20/ERC20Detailed.sol';
  * from the frontend contract. The separation has been conceived for upgradability reasons
  * while keeping the contracts as flexible as possible.
  */
-contract ZtickyCoinZ is ERC20Pausable, ERC20Detailed("ZtickyCoinZ","ZCZ", 18), HasNoEther, Backend {
+contract ZtickyCoinZ is ERC20Pausable, ERC20Detailed("ZtickyCoinZ","ZCZ", 18), ERC20Metadata, HasNoEther, Backend {
+
+
+  constructor(string memory tokenURI) ERC20Metadata(tokenURI) public {}
 
   /**
    * @dev Function to mint tokens
