@@ -159,7 +159,7 @@ contract ERC900 is IERC900, Pausable {
     for (uint256 i = s.stakeIndex; i < s.stakes.length; i++) {
       uint256 index = i - s.stakeIndex;
       blockNumbers[index] = s.stakes[i].blockNumber;
-      amounts[index] = s.stakes[i].amount;
+      amounts[index] = s.stakes[i].amount.sub(s.stakes[i].unstaked);
       stakeFors[index] = s.stakes[i].stakeFor;
     }
 
