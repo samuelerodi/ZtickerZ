@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-NODE_VERSION=8.11.3
+NODE_VERSION=10.15.3
 
 # Installing nvm and nodejs
 echo "Installing nvm..."

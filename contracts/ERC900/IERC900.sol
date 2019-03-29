@@ -18,7 +18,7 @@ interface IERC900 {
   function supportsHistory() external pure returns (bool);
 
   // NOTE: Not implementing the optional functions
-  function lastStakedFor(address addr) external view returns (uint256);
-  function totalStakedForAt(address addr, uint256 blockNumber) external view returns (uint256);
-  function totalStakedAt(uint256 blockNumber) external view returns (uint256);
+  /* function lastStakedFor(address addr) external view returns (uint256); */
+  /* function totalStakedForAt(address addr, uint256 blockNumber) external view returns (uint256); */
+  /* function totalStakedAt(uint256 blockNumber) external view returns (uint256); */
 }

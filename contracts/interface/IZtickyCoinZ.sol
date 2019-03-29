@@ -1,6 +1,6 @@
 pragma solidity ^0.5.2;
 
-interface ZtickyCoinZ {
+interface IZtickyCoinZ {
   //BASE
   function mint(address _to, uint256 _amount) external returns(bool);
   function burn(uint256 _value) external returns(bool);
@@ -30,9 +30,9 @@ interface ZtickyCoinZ {
   function addPauser(address account) external;
   function renouncePauser() external;
   //Ownable
-  function owner() external view returns (address);
+  function owner() external view returns (address payable);
   function isOwner() external view returns (bool);
-  function transferOwnership(address newOwner) external;
+  function transferOwnership(address payable newOwner) external;
   //Backend
   function isBackend() external pure returns (bool);
   function isFrontend(address account) external view returns (bool);

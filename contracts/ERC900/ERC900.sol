@@ -177,10 +177,13 @@ contract ERC900 is IERC900, Pausable {
     internal
     whenNotPaused
     canStake(_sender, _amount)
+    returns (uint256 , uint256 , address)
   {
     stakeHolders[_stakeFor].total = stakeHolders[_stakeFor].total.add(_amount);
-    stakeHolders[_sender].stakes.push(Stake(block.number, _amount, 0, _stakeFor));
-    emit Staked(_stakeFor, _amount, totalStakedFor(_stakeFor), _data);
+    Stake storage s = Stake(block.number, _amount, 0, _stakeFor);
+    stakeHolders[_sender].stakes.push(s);
+    emit Staked(s.stakeFor, s.amount, totalStakedFor(s.stakeFor), _data);
+    return (s.blockNumber, s.amount, s.stakeFor);
   }
 
   /**
@@ -192,6 +195,7 @@ contract ERC900 is IERC900, Pausable {
   function withdrawStake(address _sender, uint256 _amount, bytes memory _data)
     internal
     whenNotPaused
+    returns(uint256[] memory blockNumbers, uint256[] memory amounts, address[] memory stakeFors)
   {
     StakeContract storage sc = stakeHolders[_sender];
     uint256 _totalUnstaked = 0;
@@ -207,6 +211,9 @@ contract ERC900 is IERC900, Pausable {
       require(s.amount>=s.unstaked, "Inconsistent staking state.");
       if (s.amount == s.unstaked) stakeHolders[_sender].stakeIndex++;
       emit Unstaked(s.stakeFor, _unstake, totalStakedFor(s.stakeFor), _data);
+      blockNumbers.push(s.blockNumber);
+      amounts.push(s.unstaked);
+      stakeFors.push(s.stakeFor);
     }
     if (_totalUnstaked == 0) return;
     // Transfer the staked tokens from this contract back to the sender

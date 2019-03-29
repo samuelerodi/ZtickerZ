@@ -2,22 +2,22 @@ pragma solidity ^0.5.2;
 
 import '../utils/Ownable.sol';
 
-import '../interface/ZtickyStake.sol';
-import '../interface/ZtickyCoinZ.sol';
+import '../interface/IZtickyStake.sol';
+import '../interface/IZtickyCoinZ.sol';
 
 /**
  * @title Frontend
  * @dev The Frontend contract is an interface to all the backend contracts.
  * This structure is useful to simplify the upgradability as it make it possible to separate logic from storage
  * while guaranteeing the correct write permissions to the storage.
- * Current implementation includes a pointer to the ZtickyCoinZ contract.
+ * Current implementation includes a pointer to the ZCZ and ZStake contract.
  */
 contract Frontend is Ownable{
   address private _ZCZAddress = address(0);
-  ZtickyCoinZ private _ZCZ = ZtickyCoinZ(_ZCZAddress);
+  IZtickyCoinZ private _ZCZ = IZtickyCoinZ(_ZCZAddress);
 
   address private _ZStakeAddress = address(0);
-  ZtickyStake private _ZStake = ZtickyStake(_ZStakeAddress);
+  IZtickyStake private _ZStake = IZtickyStake(_ZStakeAddress);
 
   /**
    * @dev Make sure the entire logic contract has been correctly configured.
@@ -27,7 +27,7 @@ contract Frontend is Ownable{
   view
   returns(bool)
   {
-    require(_ZCZAddress!=address(0), "ZtickyCoinZ contract not configured.");
+    require(_ZCZAddress!=address(0), "_ZCZ contract not configured.");
     require(_ZStakeAddress!=address(0), "ZStake contract not configured.");
     return true;
   }
@@ -42,9 +42,9 @@ contract Frontend is Ownable{
   returns(bool)
   {
     require(_newAddress!=address(0), "Address must be specified.");
-    require(ZtickyStake(_newAddress).isBackend(), "Address is not a valid backend contract.");
+    require(IZtickyStake(_newAddress).isBackend(), "Address is not a valid backend contract.");
     _ZStakeAddress = _newAddress;
-    _ZStake =ZtickyStake(_ZStakeAddress);
+    _ZStake =IZtickyStake(_ZStakeAddress);
     return true;
   }
 
@@ -58,9 +58,9 @@ contract Frontend is Ownable{
   returns(bool)
   {
     require(_newAddress!=address(0), "Address must be specified.");
-    require(ZtickyCoinZ(_newAddress).isBackend(), "Address is not a valid backend contract.");
+    require(IZtickyCoinZ(_newAddress).isBackend(), "Address is not a valid backend contract.");
     _ZCZAddress = _newAddress;
-    _ZCZ =ZtickyCoinZ(_ZCZAddress);
+    _ZCZ =IZtickyCoinZ(_ZCZAddress);
     return true;
   }
 
@@ -70,7 +70,7 @@ contract Frontend is Ownable{
   function ZCZ()
   public
   view
-  returns(ZtickyCoinZ)
+  returns(IZtickyCoinZ)
   {
     return _ZCZ;
   }
@@ -81,7 +81,7 @@ contract Frontend is Ownable{
   function ZStake()
   public
   view
-  returns(ZtickyStake)
+  returns(IZtickyStake)
   {
     return _ZStake;
   }
