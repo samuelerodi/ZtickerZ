@@ -4,6 +4,7 @@ import '../interface/IZtickyStake.sol';
 
 import '../backend/Backend.sol';
 import '../utils/HasNoEther.sol';
+import '../utils/Destructible.sol';
 import "../utils/SafeMath.sol";
 import '../ERC900/ERC900.sol';
 import '../ERC20/ERC20.sol';
@@ -13,44 +14,169 @@ import '../ERC20/ERC20.sol';
  * @dev The ZtickyStake contract is a backend ERC900 contract used as storage for staking features.
  * It doesn't supports history and implements an interface callable exclusively from the logic contract
  */
-contract ZtickyStake is IZtickyStake, ERC900, HasNoEther, Backend {
+contract ZtickyStake is IZtickyStake, ERC900, Destructible, HasNoEther, Backend {
 
   using SafeMath for uint256;
 
-  uint256 totalShare = 0;
-  uint256 totalStake = 0;
-  uint256 lastUpdated = 0;
+  struct ShareContract {
+    uint256 outstandingShares;
+    uint256 lastUpdated;
+  }
+  ShareContract public total;
+  mapping (address => ShareContract) public shareHolders;
 
   constructor(address _zcz) ERC900(ERC20(_zcz)) public {}
 
-  function getShare(uint256 _previousShare, uint256 _previousStake, uint256 _updatedAt)
+  modifier emergencyUnstake() {
+    require(ERC900.ERC20tokenContract.transfer(Ownable.owner(), ERC900.totalStaked()), "Transfer of staked locked tokens is required!");
+    _;
+  }
+
+  function calculateShares(uint256 _previousShare, uint256 _previousStake, uint256 _updatedAt)
   internal
-  returns (uint256 _totalShare)
+  view
+  returns (uint256 _outstandingShares)
   {
     uint256 _delta = block.number.sub(_updatedAt);
-    uint256 _totalShare = totalShare + delta.mul(totalStake);
+    _outstandingShares = _previousShare + _delta.mul(_previousStake);
   }
 
-  function createStake(address _sender, address _stakeFor, uint256 _amount, bytes memory _data)
+  function updateShares()
   internal
   {
-    totalShare = getShare(totalShare, totalStake, lastUpdated);
-    lastUpdated = block.number;
-    ( , uint256 _stakedAmount, ) = ERC900.createStake(_sender, _stakeFor, _amount, _data);
-    totalStake = totalStake.add(_stakedAmount);
+    total.outstandingShares = totalShares();
+    total.lastUpdated = block.number;
   }
 
-  function withdrawStake(address _sender, uint256 _amount, bytes memory _data)
+  function updateSharesOf(address _shareHolder)
   internal
   {
-    totalShare = getShare(totalShare, totalStake, lastUpdated);
-    lastUpdated = block.number;
-    (uint256[] memory blockNumbers, uint256[] memory amounts, address[] memory stakeFors) = ERC900.withdrawStake(_sender, _amount, _data);
+    shareHolders[_shareHolder].outstandingShares = sharesOf(_shareHolder);
+    shareHolders[_shareHolder].lastUpdated = block.number;
+  }
+
+  function createStake(address _stakedBy, address _stakeFor, uint256 _amount, bytes memory _data)
+  internal
+  returns (uint256 , uint256)
+  {
+    updateShares();
+    updateSharesOf(_stakeFor);
+    return ERC900.createStake(_stakedBy, _stakeFor, _amount, _data);
+  }
+
+  function withdrawStake(address _stakedBy, address _stakeFor, uint256 _amount, bytes memory _data)
+  internal
+  returns(uint256[] memory blockNumbers, uint256[] memory amounts)
+  {
+    updateShares();
+    updateSharesOf(_stakeFor);
+    (blockNumbers, amounts) = ERC900.withdrawStake(_stakedBy, _stakeFor, _amount, _data);
     uint256 _unstakedShare = 0;
+    uint256 n = block.number;
     for (uint256 i = 0; i < amounts.length; i++) {
-      totalStake = totalStake.sub(amounts[i]);
-      _unstakedShare = _unstakedShare + block.number.sub(blockNumbers[i]).mul(amounts[i])
+      uint256 _delta = n.sub(blockNumbers[i]);
+      _unstakedShare = _unstakedShare.add(_delta.mul(amounts[i]));
+      shareHolders[_stakeFor].outstandingShares = shareHolders[_stakeFor].outstandingShares.sub(_unstakedShare);
+      shareHolders[_stakeFor].lastUpdated = n;
     }
-    totalShare = totalShare.sub(_unstakedShare);
+    total.outstandingShares = total.outstandingShares.sub(_unstakedShare);
+  }
+
+
+  function totalShares()
+  public
+  view
+  returns (uint256)
+  {
+    return calculateShares(total.outstandingShares, ERC900.totalStaked(), total.lastUpdated);
+  }
+
+  function sharesOf(address _shareHolder)
+  public
+  view
+  returns (uint256)
+  {
+    ShareContract storage s = shareHolders[_shareHolder];
+    return calculateShares(s.outstandingShares, ERC900.totalStakedFor(_shareHolder), s.lastUpdated);
+  }
+
+  /**
+   * @notice Stakes a certain amount of tokens, this MUST transfer the given amount from the user
+   * @notice MUST trigger Staked event
+   * @param _amount uint256 the amount of tokens to stake
+   * @param _data bytes optional data to include in the Stake event
+   */
+  function authorizedStakeFor(address _stakeFor, uint256 _amount, bytes memory _data)
+  onlyFrontend
+  whenNotPaused
+  public
+  returns (bool)
+  {
+    createStake(tx.origin, _stakeFor, _amount, _data);
+    return true;
+  }
+
+  /**
+  * @notice Unstakes a certain amount of tokens, this SHOULD return the given amount of tokens to the user, if unstaking is currently not possible the function MUST revert
+  * @notice MUST trigger Unstaked event
+  * @dev Users can only unstake starting from their oldest active stake. Upon releasing that stake, the tokens will be
+  *  transferred back to their account, and their stakeIndex will increment to the next active stake.
+  * @param _amount uint256 the amount of tokens to unstake
+  * @param _data bytes optional data to include in the Unstake event
+  */
+  function authorizedUnstakeFor(address _stakeFor, uint256 _amount, bytes memory _data)
+  onlyFrontend
+  whenNotPaused
+  public
+  returns (bool)
+  {
+    withdrawStake(tx.origin, _stakeFor, _amount, _data);
+    return true;
+  }
+
+  /**
+   * @notice Stakes a certain amount of tokens, this MUST transfer the given amount from the user
+   * @notice MUST trigger Staked event
+   * @param _amount uint256 the amount of tokens to stake
+   * @param _data bytes optional data to include in the Stake event
+   */
+  function authorizedStake(uint256 _amount, bytes memory _data)
+  public
+  returns (bool)
+  {
+    return authorizedStakeFor(tx.origin, _amount, _data);
+  }
+
+
+  /**
+   * @notice Stakes a certain amount of tokens, this MUST transfer the given amount from the user
+   * @notice MUST trigger Staked event
+   * @param _amount uint256 the amount of tokens to stake
+   * @param _data bytes optional data to include in the Stake event
+   */
+  function authorizedUnstake(uint256 _amount, bytes memory _data)
+  public
+  returns (bool)
+  {
+    return authorizedUnstakeFor(tx.origin, _amount, _data);
+  }
+
+  /**
+   * @dev Transfers the current balance to the owner and terminates the contract.
+   */
+  function destroy()
+  whenPaused
+  emergencyUnstake
+  public
+  {
+    Destructible.destroy();
+  }
+
+  function destroyAndSend(address payable _recipient)
+  whenPaused
+  emergencyUnstake
+  public
+  {
+    Destructible.destroyAndSend(_recipient);
   }
 }

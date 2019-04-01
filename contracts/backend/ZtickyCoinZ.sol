@@ -51,21 +51,6 @@ contract ZtickyCoinZ is IZtickyCoinZ, ERC20Pausable, ERC20Detailed("ZtickyCoinZ"
     return true;
   }
 
-  // /**
-  //  * @dev This function allows to send directly tokens to market contract in order to trade for specific sticker.
-  //  * @param _stickerId The unique id of the sticker to be bought.
-  //  */
-  // function buyAndTransfer(uint256 _stickerId)
-  // public
-  // whenNotPaused
-  // returns(bool)
-  // {
-  //   (, uint256 price) = MarketInterface(frontend).getItemOnSale(_stickerId);
-  //   require(price <= balances[msg.sender], 'Price should be lower than balance');
-  //   PausableToken.approve(frontend, price);
-  //   MarketInterface(frontend).sellItem(_stickerId, msg.sender);
-  //   return true;
-  // }
 
   /**
    * @dev This function allows the frontend contract to directly withdraw from user balance in order
