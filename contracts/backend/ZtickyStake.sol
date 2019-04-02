@@ -18,6 +18,8 @@ contract ZtickyStake is IZtickyStake, ERC900, Destructible, HasNoEther, Backend 
 
   using SafeMath for uint256;
 
+  uint256 public minimumLockTime = 0;
+
   struct ShareContract {
     uint256 outstandingShares;
     uint256 lastUpdated;
@@ -27,18 +29,37 @@ contract ZtickyStake is IZtickyStake, ERC900, Destructible, HasNoEther, Backend 
 
   constructor(address _zcz) ERC900(ERC20(_zcz)) public {}
 
-  modifier emergencyUnstake() {
-    require(ERC900.ERC20tokenContract.transfer(Ownable.owner(), ERC900.totalStaked()), "Transfer of staked locked tokens is required!");
+  modifier emergencyUnstake(address _recipient) {
+    require(ERC900.ERC20tokenContract.transfer(_recipient, ERC900.totalStaked()), "Transfer of staked locked tokens is required!");
     _;
   }
 
-  function calculateShares(uint256 _previousShare, uint256 _previousStake, uint256 _updatedAt)
+  function calculateCurrentSharesFromPreviousState(uint256 _previousShare, uint256 _previousStake, uint256 _updatedAt)
   internal
   view
   returns (uint256 _outstandingShares)
   {
     uint256 _delta = block.number.sub(_updatedAt);
     _outstandingShares = _previousShare + _delta.mul(_previousStake);
+  }
+
+  function calculateCurrentSharesFromHistory(uint256[] memory blockNumbers, uint256[] memory amounts, uint256 _minimumLockTime)
+  internal
+  view
+  returns (uint256 _outstandingShares)
+  {
+    for (uint256 i = 0; i < blockNumbers.length; i++) {
+      if (block.number.sub(blockNumbers[i]) < _minimumLockTime) continue;
+      _outstandingShares = _outstandingShares.add(calculateCurrentSharesFromPreviousState(0, amounts[i], blockNumbers[i]));
+    }
+  }
+
+  function getShareRatio(uint256 _outstandingShares, uint256 _totalShares)
+  internal
+  pure
+  returns (uint256)
+  {
+    return _outstandingShares.mul(1 ether).div(_totalShares);
   }
 
   function updateShares()
@@ -82,13 +103,12 @@ contract ZtickyStake is IZtickyStake, ERC900, Destructible, HasNoEther, Backend 
     total.outstandingShares = total.outstandingShares.sub(_unstakedShare);
   }
 
-
   function totalShares()
   public
   view
   returns (uint256)
   {
-    return calculateShares(total.outstandingShares, ERC900.totalStaked(), total.lastUpdated);
+    return calculateCurrentSharesFromPreviousState(total.outstandingShares, ERC900.totalStaked(), total.lastUpdated);
   }
 
   function sharesOf(address _shareHolder)
@@ -97,7 +117,24 @@ contract ZtickyStake is IZtickyStake, ERC900, Destructible, HasNoEther, Backend 
   returns (uint256)
   {
     ShareContract storage s = shareHolders[_shareHolder];
-    return calculateShares(s.outstandingShares, ERC900.totalStakedFor(_shareHolder), s.lastUpdated);
+    return calculateCurrentSharesFromPreviousState(s.outstandingShares, ERC900.totalStakedFor(_shareHolder), s.lastUpdated);
+  }
+
+  function shareRatioOf(address _shareHolder)
+  public
+  view
+  returns (uint256)
+  {
+    return getShareRatio(sharesOf(_shareHolder), totalShares());
+  }
+
+  function changeMinimumLockTime(uint256 _newMinimumLockTime)
+  onlyBackendAdmin
+  public
+  returns (bool)
+  {
+    minimumLockTime = _newMinimumLockTime;
+    return true;
   }
 
   /**
@@ -128,10 +165,11 @@ contract ZtickyStake is IZtickyStake, ERC900, Destructible, HasNoEther, Backend 
   onlyFrontend
   whenNotPaused
   public
-  returns (bool)
+  returns (uint256)
   {
-    withdrawStake(tx.origin, _stakeFor, _amount, _data);
-    return true;
+    uint256 _totalShares = totalShares();
+    (uint256[] memory blockNumbers, uint256[] memory amounts) =  withdrawStake(tx.origin, _stakeFor, _amount, _data);
+    return getShareRatio(calculateCurrentSharesFromHistory(blockNumbers, amounts, minimumLockTime), _totalShares);
   }
 
   /**
@@ -156,7 +194,7 @@ contract ZtickyStake is IZtickyStake, ERC900, Destructible, HasNoEther, Backend 
    */
   function authorizedUnstake(uint256 _amount, bytes memory _data)
   public
-  returns (bool)
+  returns (uint256)
   {
     return authorizedUnstakeFor(tx.origin, _amount, _data);
   }
@@ -166,17 +204,19 @@ contract ZtickyStake is IZtickyStake, ERC900, Destructible, HasNoEther, Backend 
    */
   function destroy()
   whenPaused
-  emergencyUnstake
+  onlyBackendAdmin
+  emergencyUnstake(Ownable.owner())
   public
   {
-    Destructible.destroy();
+    selfdestruct(Ownable.owner());
   }
 
   function destroyAndSend(address payable _recipient)
   whenPaused
-  emergencyUnstake
+  onlyOwner
+  emergencyUnstake(_recipient)
   public
   {
-    Destructible.destroyAndSend(_recipient);
+    return Destructible.destroyAndSend(_recipient);
   }
 }

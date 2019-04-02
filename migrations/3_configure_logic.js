@@ -10,4 +10,6 @@ module.exports = async function(deployer) {
   var accounts = await web3.eth.getAccounts();
   await zcz.addFrontend(z.address, {from: accounts[0]});
   await zstake.addFrontend(z.address, {from: accounts[0]});
+  await z.changeZCZContract(zcz.address, {from: accounts[0]});
+  await z.changeZStakeContract(zstake.address, {from: accounts[0]});
 };

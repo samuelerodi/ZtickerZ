@@ -1,5 +1,7 @@
 pragma solidity ^0.5.2;
 
+import './interface/IZtickerZ.sol';
+
 import './utils/Destructible.sol';
 import './backend/Frontend.sol';
 import "./utils/Pausable.sol";
@@ -9,7 +11,7 @@ import "./utils/Pausable.sol";
  * @dev The ZtickerZMock contract is a basic logic contract implementing basic functionalities
  * used for ZCZ distribution prior to full version release.
  */
-contract ZtickerZ is Frontend, Destructible, Pausable {
+contract ZtickerZ is IZtickerZ, Frontend, Destructible, Pausable {
 
 
     /**
@@ -38,8 +40,22 @@ contract ZtickerZ is Frontend, Destructible, Pausable {
       returns (bool)
     {
       Frontend.ZCZ().authorizedApprove(address(this), value);
-      // Frontend.ZStake().stake(value);
+      Frontend.ZStake().authorizedStake(value, "ZtickerZv01");
       return true;
     }
 
+
+    /**
+     * @dev This function allows the frontend contract to directly withdraw from user balance in order
+     * to reduce user interactions when invoked from logic contract.
+     * @param value The amount of approval.
+     */
+    function unstake(uint256 value) public
+      whenNotPaused
+      returns (bool)
+    {
+      Frontend.ZCZ().authorizedApprove(address(this), value);
+      Frontend.ZStake().authorizedUnstake(value, "ZtickerZv01");
+      return true;
+    }
 }
