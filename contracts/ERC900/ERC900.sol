@@ -82,10 +82,9 @@ contract ERC900 is IERC900, Pausable {
    * @notice Stakes a certain amount of tokens, this MUST transfer the given amount from the user
    * @notice MUST trigger Staked event
    * @param _amount uint256 the amount of tokens to stake
-   * @param _data bytes optional data to include in the Stake event
    */
-  function stake(uint256 _amount, bytes memory _data) public {
-    createStake(msg.sender, msg.sender, _amount, _data);
+  function stake(uint256 _amount) public {
+    createStake(msg.sender, msg.sender, _amount);
   }
 
   /**
@@ -93,10 +92,9 @@ contract ERC900 is IERC900, Pausable {
    * @notice MUST trigger Staked event
    * @param _stakeFor address the address the tokens are staked for
    * @param _amount uint256 the amount of tokens to stake
-   * @param _data bytes optional data to include in the Stake event
    */
-  function stakeFor(address _stakeFor, uint256 _amount, bytes memory _data) public {
-    createStake(msg.sender, _stakeFor, _amount,  _data);
+  function stakeFor(address _stakeFor, uint256 _amount) public {
+    createStake(msg.sender, _stakeFor, _amount);
   }
 
   /**
@@ -105,10 +103,9 @@ contract ERC900 is IERC900, Pausable {
    * @dev Users can only unstake starting from their oldest active stake. Upon releasing that stake, the tokens will be
    *  transferred back to their account, and their stakeIndex will increment to the next active stake.
    * @param _amount uint256 the amount of tokens to unstake
-   * @param _data bytes optional data to include in the Unstake event
    */
-  function unstake(uint256 _amount, bytes memory _data) public {
-    withdrawStake(msg.sender, msg.sender, _amount, _data);
+  function unstake(uint256 _amount) public {
+    withdrawStake(msg.sender, msg.sender, _amount);
   }
 
   /**
@@ -118,10 +115,9 @@ contract ERC900 is IERC900, Pausable {
    *  transferred back to their owner, and their stakeIndex will increment to the next active stake.
    * @param _stakeFor address the user the tokens are staked for
    * @param _amount uint256 the amount of tokens to unstake
-   * @param _data bytes optional data to include in the Unstake event
    */
-  function unstakeFor(address _stakeFor, uint256 _amount, bytes memory _data) public {
-    withdrawStake(msg.sender, _stakeFor, _amount, _data);
+  function unstakeFor(address _stakeFor, uint256 _amount) public {
+    withdrawStake(msg.sender, _stakeFor, _amount);
   }
 
   /**
@@ -189,9 +185,8 @@ contract ERC900 is IERC900, Pausable {
    * @param _stakedBy address The sender requesting the stake
    * @param _stakeFor address The address the stake is being created for
    * @param _amount uint256 The number of tokens being staked
-   * @param _data bytes optional data to include in the Stake event
    */
-  function createStake(address _stakedBy, address _stakeFor, uint256 _amount, bytes memory _data)
+  function createStake(address _stakedBy, address _stakeFor, uint256 _amount)
     internal
     whenNotPaused
     canStake(_stakedBy, _amount)
@@ -201,7 +196,7 @@ contract ERC900 is IERC900, Pausable {
     Stake memory s = Stake(block.number, _amount, 0, _stakedBy);
     stakeHolders[_stakeFor].stakes.push(s);
     stakeHolders[_stakedBy].fors[_stakeFor].stakes.push(s);
-    emit Staked(_stakeFor, s.amount, totalStakedFor(_stakeFor), _data);
+    emit Staked(_stakeFor, s.amount, totalStakedFor(_stakeFor), _stakedBy);
     return (s.blockNumber, s.amount);
   }
 
@@ -209,9 +204,8 @@ contract ERC900 is IERC900, Pausable {
    * @dev Helper function to withdraw stakes back to the original _stakedBy
    * @param _stakedBy address The sender that created the stake
    * @param _amount uint256 The amount to withdraw. Any exceeding amount will be mapped to the maximum available stake amount.
-   * @param _data bytes optional data to include in the Unstake event
    */
-  function withdrawStake(address _stakedBy, address _unstakeFor, uint256 _amount, bytes memory _data)
+  function withdrawStake(address _stakedBy, address _unstakeFor, uint256 _amount)
     internal
     whenNotPaused
     returns(uint256[] memory blockNumbers, uint256[] memory amounts)
@@ -221,7 +215,7 @@ contract ERC900 is IERC900, Pausable {
     uint256 i = 0;
     blockNumbers = new uint256[](sc.stakes.length);
     amounts = new uint256[](sc.stakes.length);
-    while(_amount > 0 || sc.stakeIndex < sc.stakes.length) {
+    while(_amount > 0 && sc.stakeIndex < sc.stakes.length) {
       Stake storage s = sc.stakes[sc.stakeIndex];
       uint256 _remainder = s.amount.sub(s.unstaked);
       uint256 _unstake = Math.min(_amount, _remainder);
@@ -232,7 +226,7 @@ contract ERC900 is IERC900, Pausable {
       // Add safe check in case of contract vulnerability
       require(s.amount>=s.unstaked, "Inconsistent staking state.");
       if (s.amount == s.unstaked) sc.stakeIndex++;
-      emit Unstaked(_unstakeFor, _unstake, totalStakedFor(_unstakeFor), _data);
+      emit Unstaked(_unstakeFor, _unstake, totalStakedFor(_unstakeFor), _stakedBy);
       blockNumbers[i] = s.blockNumber;
       amounts[i] = _unstake;
       i++;

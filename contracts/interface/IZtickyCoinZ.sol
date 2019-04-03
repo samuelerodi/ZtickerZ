@@ -1,7 +1,9 @@
 pragma solidity ^0.5.2;
 
 interface IZtickyCoinZ {
-  //BASE
+
+  //ZtickyCoinZ
+  function isZCZ() external pure returns(bool);
   function mint(address _to, uint256 _amount) external returns(bool);
   function burn(uint256 _value) external returns(bool);
   function authorizedApprove(address spender, uint256 value) external returns (bool);

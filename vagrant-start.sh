@@ -41,8 +41,9 @@ fi
 # fi
 
 echo "Launching ganache-cli in background"
-nohup ganache-cli -d --host=0.0.0.0 -b 2 -i 100 >> /vagrant/ganache-cli.log &
-truffle compile
+nohup ganache-cli -d --host=0.0.0.0 -b 1 -i 100 > /vagrant/ganache-cli.log &
+
+
 truffle migrate
 
 echo "Server started. Log in under /vagrant directory and run"

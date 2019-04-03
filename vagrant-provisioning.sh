@@ -44,7 +44,7 @@ echo "cd /vagrant" >> /home/vagrant/.profile
 cd /vagrant
 
 ## Install global packages
-npm install -g ganache-cli truffle create-react-app
+npm install -g ganache-cli truffle truffle-flattener
 npm i
 # npm install --only=production
 

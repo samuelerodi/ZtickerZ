@@ -20,6 +20,14 @@ contract ZtickyCoinZ is IZtickyCoinZ, ERC20Pausable, ERC20Detailed("ZtickyCoinZ"
 
   constructor(string memory tokenURI) ERC20Metadata(tokenURI) public {}
 
+  function isZCZ()
+  public
+  pure
+  returns(bool)
+  {
+    return true;
+  }
+
   /**
    * @dev Function to mint tokens
    * @param _to The address that will receive the minted tokens.

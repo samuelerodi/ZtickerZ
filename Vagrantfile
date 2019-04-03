@@ -25,6 +25,8 @@ Vagrant.configure("2") do |config|
   config.vm.network "forwarded_port", guest: 30303 , host: 30303
   # RPC Port
   config.vm.network "forwarded_port", guest: 8545, host: 8545, host_ip: "127.0.0.1"
+  # Remixd
+  config.vm.network "forwarded_port", guest: 65520, host: 65520, host_ip: "127.0.0.1"
   # Http Port
   config.vm.network "forwarded_port", guest: 3000, host: 3000
   # Http Production Port

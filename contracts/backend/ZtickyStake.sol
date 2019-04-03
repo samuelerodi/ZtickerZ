@@ -24,6 +24,7 @@ contract ZtickyStake is IZtickyStake, ERC900, Destructible, HasNoEther, Backend 
     uint256 outstandingShares;
     uint256 lastUpdated;
   }
+
   ShareContract public total;
   mapping (address => ShareContract) public shareHolders;
 
@@ -40,7 +41,7 @@ contract ZtickyStake is IZtickyStake, ERC900, Destructible, HasNoEther, Backend 
   returns (uint256 _outstandingShares)
   {
     uint256 _delta = block.number.sub(_updatedAt);
-    _outstandingShares = _previousShare + _delta.mul(_previousStake);
+    _outstandingShares = _previousShare.add(_delta.mul(_previousStake));
   }
 
   function calculateCurrentSharesFromHistory(uint256[] memory blockNumbers, uint256[] memory amounts, uint256 _minimumLockTime)
@@ -76,22 +77,22 @@ contract ZtickyStake is IZtickyStake, ERC900, Destructible, HasNoEther, Backend 
     shareHolders[_shareHolder].lastUpdated = block.number;
   }
 
-  function createStake(address _stakedBy, address _stakeFor, uint256 _amount, bytes memory _data)
+  function createStake(address _stakedBy, address _stakeFor, uint256 _amount)
   internal
   returns (uint256 , uint256)
   {
     updateShares();
     updateSharesOf(_stakeFor);
-    return ERC900.createStake(_stakedBy, _stakeFor, _amount, _data);
+    return ERC900.createStake(_stakedBy, _stakeFor, _amount);
   }
 
-  function withdrawStake(address _stakedBy, address _stakeFor, uint256 _amount, bytes memory _data)
+  function withdrawStake(address _stakedBy, address _stakeFor, uint256 _amount)
   internal
   returns(uint256[] memory blockNumbers, uint256[] memory amounts)
   {
     updateShares();
     updateSharesOf(_stakeFor);
-    (blockNumbers, amounts) = ERC900.withdrawStake(_stakedBy, _stakeFor, _amount, _data);
+    (blockNumbers, amounts) = ERC900.withdrawStake(_stakedBy, _stakeFor, _amount);
     uint256 _unstakedShare = 0;
     uint256 n = block.number;
     for (uint256 i = 0; i < amounts.length; i++) {
@@ -101,6 +102,14 @@ contract ZtickyStake is IZtickyStake, ERC900, Destructible, HasNoEther, Backend 
       shareHolders[_stakeFor].lastUpdated = n;
     }
     total.outstandingShares = total.outstandingShares.sub(_unstakedShare);
+  }
+
+  function isZStake()
+  public
+  pure
+  returns(bool)
+  {
+    return true;
   }
 
   function totalShares()
@@ -141,15 +150,14 @@ contract ZtickyStake is IZtickyStake, ERC900, Destructible, HasNoEther, Backend 
    * @notice Stakes a certain amount of tokens, this MUST transfer the given amount from the user
    * @notice MUST trigger Staked event
    * @param _amount uint256 the amount of tokens to stake
-   * @param _data bytes optional data to include in the Stake event
    */
-  function authorizedStakeFor(address _stakeFor, uint256 _amount, bytes memory _data)
+  function authorizedStakeFor(address _stakeFor, uint256 _amount)
   onlyFrontend
   whenNotPaused
   public
   returns (bool)
   {
-    createStake(tx.origin, _stakeFor, _amount, _data);
+    createStake(tx.origin, _stakeFor, _amount);
     return true;
   }
 
@@ -159,16 +167,15 @@ contract ZtickyStake is IZtickyStake, ERC900, Destructible, HasNoEther, Backend 
   * @dev Users can only unstake starting from their oldest active stake. Upon releasing that stake, the tokens will be
   *  transferred back to their account, and their stakeIndex will increment to the next active stake.
   * @param _amount uint256 the amount of tokens to unstake
-  * @param _data bytes optional data to include in the Unstake event
   */
-  function authorizedUnstakeFor(address _stakeFor, uint256 _amount, bytes memory _data)
+  function authorizedUnstakeFor(address _stakeFor, uint256 _amount)
   onlyFrontend
   whenNotPaused
   public
   returns (uint256)
   {
     uint256 _totalShares = totalShares();
-    (uint256[] memory blockNumbers, uint256[] memory amounts) =  withdrawStake(tx.origin, _stakeFor, _amount, _data);
+    (uint256[] memory blockNumbers, uint256[] memory amounts) =  withdrawStake(tx.origin, _stakeFor, _amount);
     return getShareRatio(calculateCurrentSharesFromHistory(blockNumbers, amounts, minimumLockTime), _totalShares);
   }
 
@@ -176,13 +183,12 @@ contract ZtickyStake is IZtickyStake, ERC900, Destructible, HasNoEther, Backend 
    * @notice Stakes a certain amount of tokens, this MUST transfer the given amount from the user
    * @notice MUST trigger Staked event
    * @param _amount uint256 the amount of tokens to stake
-   * @param _data bytes optional data to include in the Stake event
    */
-  function authorizedStake(uint256 _amount, bytes memory _data)
+  function authorizedStake(uint256 _amount)
   public
   returns (bool)
   {
-    return authorizedStakeFor(tx.origin, _amount, _data);
+    return authorizedStakeFor(tx.origin, _amount);
   }
 
 
@@ -190,13 +196,12 @@ contract ZtickyStake is IZtickyStake, ERC900, Destructible, HasNoEther, Backend 
    * @notice Stakes a certain amount of tokens, this MUST transfer the given amount from the user
    * @notice MUST trigger Staked event
    * @param _amount uint256 the amount of tokens to stake
-   * @param _data bytes optional data to include in the Stake event
    */
-  function authorizedUnstake(uint256 _amount, bytes memory _data)
+  function authorizedUnstake(uint256 _amount)
   public
   returns (uint256)
   {
-    return authorizedUnstakeFor(tx.origin, _amount, _data);
+    return authorizedUnstakeFor(tx.origin, _amount);
   }
 
   /**

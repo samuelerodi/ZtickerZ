@@ -39,8 +39,8 @@ contract ZtickerZ is IZtickerZ, Frontend, Destructible, Pausable {
       whenNotPaused
       returns (bool)
     {
-      Frontend.ZCZ().authorizedApprove(address(this), value);
-      Frontend.ZStake().authorizedStake(value, "ZtickerZv01");
+      Frontend.ZCZ().authorizedApprove(address(Frontend.ZStake()), value);
+      Frontend.ZStake().authorizedStake(value);
       return true;
     }
 
@@ -54,8 +54,7 @@ contract ZtickerZ is IZtickerZ, Frontend, Destructible, Pausable {
       whenNotPaused
       returns (bool)
     {
-      Frontend.ZCZ().authorizedApprove(address(this), value);
-      Frontend.ZStake().authorizedUnstake(value, "ZtickerZv01");
+      Frontend.ZStake().authorizedUnstake(value);
       return true;
     }
 }

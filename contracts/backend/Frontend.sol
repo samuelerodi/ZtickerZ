@@ -13,11 +13,9 @@ import '../interface/IZtickyCoinZ.sol';
  * Current implementation includes a pointer to the ZCZ and ZStake contract.
  */
 contract Frontend is Ownable{
-  address private _ZCZAddress = address(0);
-  IZtickyCoinZ private _ZCZ = IZtickyCoinZ(_ZCZAddress);
 
-  address private _ZStakeAddress = address(0);
-  IZtickyStake private _ZStake = IZtickyStake(_ZStakeAddress);
+  IZtickyCoinZ private _ZCZ = IZtickyCoinZ(address(0));
+  IZtickyStake private _ZStake = IZtickyStake(address(0));
 
   /**
    * @dev Make sure the entire logic contract has been correctly configured.
@@ -27,8 +25,8 @@ contract Frontend is Ownable{
   view
   returns(bool)
   {
-    require(_ZCZAddress!=address(0), "_ZCZ contract not configured.");
-    require(_ZStakeAddress!=address(0), "ZStake contract not configured.");
+    require(address(_ZCZ)!=address(0), "_ZCZ contract not configured.");
+    require(address(_ZStake)!=address(0), "ZStake contract not configured.");
     return true;
   }
 
@@ -42,9 +40,8 @@ contract Frontend is Ownable{
   returns(bool)
   {
     require(_newAddress!=address(0), "Address must be specified.");
-    require(IZtickyStake(_newAddress).isBackend(), "Address is not a valid backend contract.");
-    _ZStakeAddress = _newAddress;
-    _ZStake =IZtickyStake(_ZStakeAddress);
+    require(IZtickyStake(_newAddress).isZStake(), "Address is not a valid backend contract.");
+    _ZStake =IZtickyStake(_newAddress);
     return true;
   }
 
@@ -58,9 +55,8 @@ contract Frontend is Ownable{
   returns(bool)
   {
     require(_newAddress!=address(0), "Address must be specified.");
-    require(IZtickyCoinZ(_newAddress).isBackend(), "Address is not a valid backend contract.");
-    _ZCZAddress = _newAddress;
-    _ZCZ =IZtickyCoinZ(_ZCZAddress);
+    require(IZtickyCoinZ(_newAddress).isZCZ(), "Address is not a valid backend contract.");
+    _ZCZ =IZtickyCoinZ(_newAddress);
     return true;
   }
 
@@ -72,6 +68,7 @@ contract Frontend is Ownable{
   view
   returns(IZtickyCoinZ)
   {
+    require(address(_ZCZ)!=address(0), "ZCZ contract is not configured.");
     return _ZCZ;
   }
 
@@ -83,6 +80,7 @@ contract Frontend is Ownable{
   view
   returns(IZtickyStake)
   {
+    require(address(_ZStake)!=address(0), "ZStake contract is not configured.");
     return _ZStake;
   }
 }

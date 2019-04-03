@@ -1,0 +1,12 @@
+[33m[WARN] You may now only use IDE at https://remix.ethereum.org to connect to that instance[0m
+[33m[WARN] Any application that runs on your computer can potentially read from and write to all files in the directory.[0m
+[33m[WARN] Symbolinc links are not forwarded to Remix IDE
+[0m
+setup notifications for /vagrant
+Tue Apr 02 2019 15:29:17 GMT+0000 (UTC) Remixd is listening on 127.0.0.1:65520
+[33m[WARN] You may now only use IDE at http://remix.ethereum.org to connect to that instance[0m
+[33m[WARN] Any application that runs on your computer can potentially read from and write to all files in the directory.[0m
+[33m[WARN] Symbolinc links are not forwarded to Remix IDE
+[0m
+setup notifications for /vagrant
+Tue Apr 02 2019 15:32:14 GMT+0000 (UTC) Remixd is listening on 127.0.0.1:65520
