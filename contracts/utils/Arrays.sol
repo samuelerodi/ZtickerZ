@@ -2,12 +2,12 @@ pragma solidity ^0.5.2;
 
 import "../utils/Math.sol";
 
-
 /**
  * @title Arrays
  * @dev Utility library of inline array functions
  */
 library Arrays {
+
     /**
      * @dev Upper bound search function which is kind of binary search algorithm. It searches sorted
      * array to find index of the element value. If element is found then returns its index otherwise
@@ -44,5 +44,22 @@ library Arrays {
         } else {
             return low;
         }
+    }
+
+    /**
+     * @dev Returns a subarray of the array element in input.
+     * @param array The original array.
+     * @param from The first zero-indexed element of the array to be considered in the sub-array result.
+     * @param to The first zero-indexed element of the array to be excluded in the sub-array result.
+     * @return The calculated subarray. If from equals to the result is an empty array.
+     */
+    function subarray(uint256[] memory array, uint256 from, uint256 to) internal pure returns (uint256[] memory out) {
+      require(array.length >= to);
+      require(to >= from);
+      uint256 l = to - from;
+      out = new uint256[](l);
+      for (uint256 i = 0; i < l; i++) {
+        out[i] = array[from + i];
+      }
     }
 }

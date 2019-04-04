@@ -3,6 +3,7 @@ pragma solidity ^0.5.2;
 
 import "../ERC20/ERC20.sol";
 import "../utils/SafeMath.sol";
+import "../utils/Arrays.sol";
 import "../utils/Pausable.sol";
 import "../utils/Math.sol";
 
@@ -16,6 +17,7 @@ import "../ERC900/IERC900.sol";
 contract ERC900 is IERC900, Pausable {
   // @TODO: deploy this separately so we don't have to deploy it multiple times for each contract
   using SafeMath for uint256;
+  using Arrays for uint256[];
 
   // Token used for staking
   ERC20 public ERC20tokenContract;
@@ -155,29 +157,55 @@ contract ERC900 is IERC900, Pausable {
   }
 
   /**
-   * @dev Helper function to get specific properties of all of the personal stakes created by an address
-   * @param _address address The address to query
-   * @return (uint256[], uint256[], address[])
-   *  timestamps array, amounts array, stakedFor array
+   * @dev Helper function to get specific properties of active stakes created by an address for another address
+   * @param _stakedBy address The address that initiated the stake
+   * @param _stakeFor address The address for which it is being staked
+   * @return (uint256[], uint256[])
+   *  timestamps array, amounts array
    */
-  function getPersonalStakes(address _address)
+  function getActiveStakesBy(address _stakedBy, address _stakeFor)
     view
     public
-    returns(uint256[] memory, uint256[] memory, address[] memory)
+    returns(uint256[] memory blockNumbers, uint256[] memory amounts)
+  {
+    StakedForContract storage s = stakeHolders[_stakedBy].fors[_stakeFor];
+    uint256 arraySize = s.stakes.length.sub(s.stakeIndex);
+    blockNumbers = new uint256[](arraySize);
+    amounts = new uint256[](arraySize);
+
+    for (uint256 i = s.stakeIndex; i < s.stakes.length; i++) {
+      blockNumbers[i] = s.stakes[i].blockNumber;
+      amounts[i] = s.stakes[i].amount.sub(s.stakes[i].unstaked);
+    }
+    return (blockNumbers, amounts);
+  }
+
+  /**
+   * @dev Helper function to get specific properties of all of the personal stakes created by an address
+   * @param _address address The address to query
+   * @return (uint256[], uint256[], uint256[], address[])
+   *  timestamps array, amounts array, unstaked array, stakedFor array
+   */
+  function getStakingHistoryOf(address _address)
+    view
+    public
+    returns(uint256[] memory, uint256[] memory, uint256[] memory, address[] memory)
   {
     StakeContract storage s = stakeHolders[_address];
     uint256 arraySize = s.stakes.length;
     uint256[] memory blockNumbers = new uint256[](arraySize);
     uint256[] memory amounts = new uint256[](arraySize);
+    uint256[] memory unstaked = new uint256[](arraySize);
     address[] memory stakedBy = new address[](arraySize);
 
     for (uint256 i = 0; i < s.stakes.length; i++) {
       blockNumbers[i] = s.stakes[i].blockNumber;
-      amounts[i] = s.stakes[i].amount.sub(s.stakes[i].unstaked);
+      amounts[i] = s.stakes[i].amount;
+      unstaked[i] = s.stakes[i].unstaked;
       stakedBy[i] = s.stakes[i].stakedBy;
     }
 
-    return (blockNumbers, amounts, stakedBy);
+    return (blockNumbers, amounts, unstaked, stakedBy);
   }
 
   /**
@@ -212,7 +240,7 @@ contract ERC900 is IERC900, Pausable {
   {
     StakedForContract storage sc = stakeHolders[_stakedBy].fors[_unstakeFor];
     uint256 _totalUnstaked = 0;
-    uint256 i = 0;
+    uint256 l = 0;
     blockNumbers = new uint256[](sc.stakes.length);
     amounts = new uint256[](sc.stakes.length);
     while(_amount > 0 && sc.stakeIndex < sc.stakes.length) {
@@ -227,13 +255,13 @@ contract ERC900 is IERC900, Pausable {
       require(s.amount>=s.unstaked, "Inconsistent staking state.");
       if (s.amount == s.unstaked) sc.stakeIndex++;
       emit Unstaked(_unstakeFor, _unstake, totalStakedFor(_unstakeFor), _stakedBy);
-      blockNumbers[i] = s.blockNumber;
-      amounts[i] = _unstake;
-      i++;
+      blockNumbers[l] = s.blockNumber;
+      amounts[l] = _unstake;
+      l++;
     }
-    if (_totalUnstaked == 0) return (blockNumbers, amounts);
     // Transfer the staked tokens from this contract back to the sender
     // Notice that we are using transfer instead of transferFrom here.
-    require(ERC20tokenContract.transfer(_stakedBy, _totalUnstaked), "Unable to withdraw stake");
+    if (_totalUnstaked != 0) require(ERC20tokenContract.transfer(_stakedBy, _totalUnstaked), "Unable to withdraw stake");
+    return  (blockNumbers.subarray(0,l), amounts.subarray(0,l));
   }
 }

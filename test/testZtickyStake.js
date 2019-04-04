@@ -5,6 +5,7 @@ const ZtickerZ = artifacts.require("ZtickerZ");
 const a1 = web3.utils.toBN("1000000");
 const a2 = web3.utils.toBN("500000");
 const a3 = web3.utils.toBN("200000");
+const a4 = web3.utils.toBN("600000");
 const _b = web3.utils.toBN("1000");
 const _eth = web3.utils.toBN(web3.utils.toWei("1"));
 
@@ -92,15 +93,64 @@ contract('ZtickyStake', function(accounts) {
     assert.equal(sr1.mul(_b).div(_eth).lt(r1), true, "1 have started staking after 0");
   });
 
+  it("...should return correct tokens at maturity.", async function() {
+    //No minimumLockTime set!
+    var s0 = await zstake.totalStakedFor(accounts[0]);
+    var m0 = await zstake.stakedTokenAtMaturity(accounts[0],accounts[0]);
+    assert.equal(s0.toString(), m0.toString(), "it should be the same for minimumLockTime=0");
+    var s1 = await zstake.totalStakedFor(accounts[1]);
+    var m1 = await zstake.stakedTokenAtMaturity(accounts[1],accounts[1]);
+    assert.equal(s1.toString(), m1.toString(), "it should be the same for minimumLockTime=0");
+  });
+
+  it("...should set minimumLockTime.", async function() {
+    await zstake.changeMinimumLockTime(a1, {from: accounts[1]});
+    var m = await zstake.minimumLockTime();
+    assert.equal(m.toString(), a1.toString(), "it should have set the minimumLockTime");
+  });
+
+  it("...should now have 0 matured tokens.", async function() {
+    //No minimumLockTime set!
+    var s0 = await zstake.totalStakedFor(accounts[0]);
+    var m0 = await zstake.stakedTokenAtMaturity(accounts[0],accounts[0]);
+    var r0 = await zstake.shareRatioAtMaturity(accounts[0],accounts[0]);
+    assert.notEqual(s0.toString(), "0", "it should still have something at stake");
+    assert.equal(m0.toString(), "0", "but no matured token");
+    assert.equal(r0.toString(), "0", "and no matured share ratio");
+    var s1 = await zstake.totalStakedFor(accounts[1]);
+    var m1 = await zstake.stakedTokenAtMaturity(accounts[1],accounts[1]);
+    var r1 = await zstake.shareRatioAtMaturity(accounts[1],accounts[1]);
+    assert.notEqual(s1.toString(), "0", "it should be the same for 1");
+    assert.equal(m1.toString(), "0", "it should be the same for 1");
+    assert.equal(r1.toString(), "0", "it should be the same for 1");
+
+  });
+
   it("...should unstake some coins.", async function() {
     var b1 = await zcz.balanceOf(accounts[0]);
     var s1 = await zstake.totalStakedFor(accounts[0]);
-    await z.unstake(a2, {from: accounts[0]});
+    await z.unstake(a4, {from: accounts[0]});
     var b2 = await zcz.balanceOf(accounts[0]);
     var s2 = await zstake.totalStakedFor(accounts[0]);
     assert.equal(b2.gt(b1), true, "it must have unstaked some coins");
-    assert.equal(s2.add(a2).toString(),s1.toString(), "it must have unstaked exact coins");
-    assert.equal(b1.add(a2).toString(),b2.toString(), "it must have received exact coins");
+    assert.equal(s2.add(a4).toString(),s1.toString(), "it must have unstaked exact coins");
+    assert.equal(b1.add(a4).toString(),b2.toString(), "it must have received exact coins");
+  });
+
+  it("...should destroy the contract.", async function() {
+    var tStaked = await zstake.totalStaked();
+    var e = false;
+    try { await zstake.destroy({from: accounts[1]}); }
+    catch (err) { e = true; }
+    assert.equal(e, true, "it should throw an error when invoked on non-paused contract");
+    await zstake.pause({from: accounts[1]});
+    e = false;
+    try { await zstake.destroyAndSend(accounts[3],{from: accounts[1]}); }
+    catch (err) { e = true; }
+    assert.equal(e, true, "it should throw an error when invoked by non legit owner");
+    await zstake.destroyAndSend(accounts[3],{from: accounts[0]});
+    var nBalance = await zcz.balanceOf(accounts[3]);
+    assert.equal(nBalance.toString(),tStaked.toString(), "it should have sent the coins to the specified recipient");
   });
 
  })

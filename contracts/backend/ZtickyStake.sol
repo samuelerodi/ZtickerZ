@@ -47,10 +47,11 @@ contract ZtickyStake is IZtickyStake, ERC900, Destructible, HasNoEther, Backend 
   function calculateCurrentSharesFromHistory(uint256[] memory blockNumbers, uint256[] memory amounts, uint256 _minimumLockTime)
   internal
   view
-  returns (uint256 _outstandingShares)
+  returns (uint256 _outstandingShares, uint256 _stakedTokenAtMaturity)
   {
     for (uint256 i = 0; i < blockNumbers.length; i++) {
       if (block.number.sub(blockNumbers[i]) < _minimumLockTime) continue;
+      _stakedTokenAtMaturity = _stakedTokenAtMaturity.add(amounts[i]);
       _outstandingShares = _outstandingShares.add(calculateCurrentSharesFromPreviousState(0, amounts[i], blockNumbers[i]));
     }
   }
@@ -98,9 +99,8 @@ contract ZtickyStake is IZtickyStake, ERC900, Destructible, HasNoEther, Backend 
     for (uint256 i = 0; i < amounts.length; i++) {
       uint256 _delta = n.sub(blockNumbers[i]);
       _unstakedShare = _unstakedShare.add(_delta.mul(amounts[i]));
-      shareHolders[_stakeFor].outstandingShares = shareHolders[_stakeFor].outstandingShares.sub(_unstakedShare);
-      shareHolders[_stakeFor].lastUpdated = n;
     }
+    shareHolders[_stakeFor].outstandingShares = shareHolders[_stakeFor].outstandingShares.sub(_unstakedShare);
     total.outstandingShares = total.outstandingShares.sub(_unstakedShare);
   }
 
@@ -135,6 +135,24 @@ contract ZtickyStake is IZtickyStake, ERC900, Destructible, HasNoEther, Backend 
   returns (uint256)
   {
     return getShareRatio(sharesOf(_shareHolder), totalShares());
+  }
+
+  function shareRatioAtMaturity(address _stakedBy, address _stakeFor)
+  public
+  view
+  returns(uint256) {
+    (uint256[] memory blockNumbers, uint256[] memory amounts) = ERC900.getActiveStakesBy(_stakedBy, _stakeFor);
+    (uint256 _outstandingShares, ) = calculateCurrentSharesFromHistory(blockNumbers, amounts, minimumLockTime);
+    return getShareRatio(_outstandingShares, totalShares());
+  }
+
+  function stakedTokenAtMaturity(address _stakedBy, address _stakeFor)
+  public
+  view
+  returns(uint256) {
+    (uint256[] memory blockNumbers, uint256[] memory amounts) = ERC900.getActiveStakesBy(_stakedBy, _stakeFor);
+    (, uint256 _stakedTokenAtMaturity) = calculateCurrentSharesFromHistory(blockNumbers, amounts, minimumLockTime);
+    return _stakedTokenAtMaturity;
   }
 
   function changeMinimumLockTime(uint256 _newMinimumLockTime)
@@ -176,7 +194,8 @@ contract ZtickyStake is IZtickyStake, ERC900, Destructible, HasNoEther, Backend 
   {
     uint256 _totalShares = totalShares();
     (uint256[] memory blockNumbers, uint256[] memory amounts) =  withdrawStake(tx.origin, _stakeFor, _amount);
-    return getShareRatio(calculateCurrentSharesFromHistory(blockNumbers, amounts, minimumLockTime), _totalShares);
+    (uint256 _outstandingShares,) = calculateCurrentSharesFromHistory(blockNumbers, amounts, minimumLockTime);
+    return getShareRatio(_outstandingShares, _totalShares);
   }
 
   /**
