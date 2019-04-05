@@ -4,7 +4,9 @@
 pragma solidity ^0.5.2;
 
 interface IZtickyCoinZ {
-  //BASE
+
+  //ZtickyCoinZ
+  function isZCZ() external pure returns(bool);
   function mint(address _to, uint256 _amount) external returns(bool);
   function burn(uint256 _value) external returns(bool);
   function authorizedApprove(address spender, uint256 value) external returns (bool);
@@ -888,6 +890,14 @@ contract ZtickyCoinZ is IZtickyCoinZ, ERC20Pausable, ERC20Detailed("ZtickyCoinZ"
 
 
   constructor(string memory tokenURI) ERC20Metadata(tokenURI) public {}
+
+  function isZCZ()
+  public
+  pure
+  returns(bool)
+  {
+    return true;
+  }
 
   /**
    * @dev Function to mint tokens

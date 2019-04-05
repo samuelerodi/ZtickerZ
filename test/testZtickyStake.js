@@ -137,6 +137,32 @@ contract('ZtickyStake', function(accounts) {
     assert.equal(b1.add(a4).toString(),b2.toString(), "it must have received exact coins");
   });
 
+  it("...should do some more staking/unstaking with no exceptions.", async function() {
+    await z.mint(accounts[0], a1, {from: accounts[0]});
+    await z.mint(accounts[0], a1, {from: accounts[0]});
+    await z.mint(accounts[0], a1, {from: accounts[0]});
+    await zcz.transfer(accounts[1], a1,  {from: accounts[0]});
+    await zcz.transfer(accounts[1], a3,  {from: accounts[0]});
+    await zcz.transfer(accounts[2], a3,  {from: accounts[0]});
+    await zcz.transfer(accounts[3], a3,  {from: accounts[0]});
+    await z.stake(a3, {from: accounts[0]});
+    await z.stake(a2, {from: accounts[0]});
+    await z.stake(a3, {from: accounts[0]});
+    await z.stake(a2, {from: accounts[1]});
+    await z.stake(a3, {from: accounts[1]});
+    await z.stake(a3, {from: accounts[2]});
+    await zstake.changeMinimumLockTime(web3.utils.toBN("100"), {from: accounts[1]});
+    await z.unstake(a2, {from: accounts[0]});
+    await z.unstake(a3, {from: accounts[1]});
+    await z.unstake(a3, {from: accounts[1]});
+    await z.unstake(a3, {from: accounts[1]});
+    await z.unstake(a3, {from: accounts[0]});
+    var e = false;
+    try {  await zstake.shareRatioAtMaturityFor(accounts[0]);}
+    catch (err) { throw err; e = true; }
+    assert.equal(e, false, "it should not throw any error");
+  });
+
   it("...should destroy the contract.", async function() {
     var tStaked = await zstake.totalStaked();
     var e = false;
@@ -148,9 +174,10 @@ contract('ZtickyStake', function(accounts) {
     try { await zstake.destroyAndSend(accounts[3],{from: accounts[1]}); }
     catch (err) { e = true; }
     assert.equal(e, true, "it should throw an error when invoked by non legit owner");
+    var pBalance = await zcz.balanceOf(accounts[3]);
     await zstake.destroyAndSend(accounts[3],{from: accounts[0]});
     var nBalance = await zcz.balanceOf(accounts[3]);
-    assert.equal(nBalance.toString(),tStaked.toString(), "it should have sent the coins to the specified recipient");
+    assert.equal(nBalance.toString(),pBalance.add(tStaked).toString(), "it should have sent the coins to the specified recipient");
   });
 
  })

@@ -33,15 +33,21 @@ contract ERC900 is IERC900, Pausable {
   // blockNumber - block number when the stake has been created
   // amount - the amount of tokens in the stake
   // stakedFor - the address the stake was staked for
-  // stakedBy - the address owner of the stake
   struct Stake {
     uint256 blockNumber;
     uint256 amount;
     uint256 unstaked;
-    address stakedBy;
   }
 
-  struct StakedForContract {
+  // Struct for HistoryRef stakes (i.e., stakes made for this address)
+  // stakedBy - the address owner of the stake
+  // idx - the index where the stake is stored
+  struct HistoryRef {
+    address stakedBy;
+    uint256 idx;
+  }
+
+  struct StakingStructure {
     uint256 stakeIndex;
     Stake[] stakes;
   }
@@ -52,8 +58,8 @@ contract ERC900 is IERC900, Pausable {
   // stakes - array list of stakes made for this address
   struct StakeContract {
     uint256 total;
-    mapping (address => StakedForContract) fors;
-    Stake[] stakes;
+    HistoryRef[] personalStakingHistory;
+    mapping (address => StakingStructure) fors;
   }
 
   /**
@@ -157,6 +163,20 @@ contract ERC900 is IERC900, Pausable {
   }
 
   /**
+   * @dev Helper function to get specific properties of active stakes created by an address for the same address
+   * @param _stakeFor address The address for which it is being staked
+   * @return (uint256[], uint256[])
+   *  timestamps array, amounts array
+   */
+  function getActiveStakesFor(address _stakeFor)
+    view
+    public
+    returns(uint256[] memory blockNumbers, uint256[] memory amounts)
+  {
+    return getActiveStakesBy(_stakeFor, _stakeFor);
+  }
+
+  /**
    * @dev Helper function to get specific properties of active stakes created by an address for another address
    * @param _stakedBy address The address that initiated the stake
    * @param _stakeFor address The address for which it is being staked
@@ -168,44 +188,45 @@ contract ERC900 is IERC900, Pausable {
     public
     returns(uint256[] memory blockNumbers, uint256[] memory amounts)
   {
-    StakedForContract storage s = stakeHolders[_stakedBy].fors[_stakeFor];
-    uint256 arraySize = s.stakes.length.sub(s.stakeIndex);
-    blockNumbers = new uint256[](arraySize);
-    amounts = new uint256[](arraySize);
+    StakingStructure storage _ss = stakeHolders[_stakedBy].fors[_stakeFor];
+    uint256 _size = _ss.stakes.length.sub(_ss.stakeIndex);
+    blockNumbers = new uint256[](_size);
+    amounts = new uint256[](_size);
 
-    for (uint256 i = s.stakeIndex; i < s.stakes.length; i++) {
-      blockNumbers[i] = s.stakes[i].blockNumber;
-      amounts[i] = s.stakes[i].amount.sub(s.stakes[i].unstaked);
+    for (uint256 i = 0; i < _size; i++) {
+      Stake storage _s = _ss.stakes[_ss.stakeIndex.add(i)];
+      blockNumbers[i] = _s.blockNumber;
+      amounts[i] = _s.amount.sub(_s.unstaked);
     }
     return (blockNumbers, amounts);
   }
 
   /**
    * @dev Helper function to get specific properties of all of the personal stakes created by an address
-   * @param _address address The address to query
+   * @param _stakeFor address The address to query
    * @return (uint256[], uint256[], uint256[], address[])
    *  timestamps array, amounts array, unstaked array, stakedFor array
    */
-  function getStakingHistoryOf(address _address)
+  function getStakingHistoryOf(address _stakeFor)
     view
     public
-    returns(uint256[] memory, uint256[] memory, uint256[] memory, address[] memory)
+    returns(uint256[] memory blockNumbers, uint256[] memory amounts, uint256[] memory unstaked, address[] memory stakedBy)
   {
-    StakeContract storage s = stakeHolders[_address];
-    uint256 arraySize = s.stakes.length;
-    uint256[] memory blockNumbers = new uint256[](arraySize);
-    uint256[] memory amounts = new uint256[](arraySize);
-    uint256[] memory unstaked = new uint256[](arraySize);
-    address[] memory stakedBy = new address[](arraySize);
+    StakeContract storage _sc = stakeHolders[_stakeFor];
+    uint256 _size = _sc.personalStakingHistory.length;
+    blockNumbers = new uint256[](_size);
+    amounts = new uint256[](_size);
+    unstaked = new uint256[](_size);
+    stakedBy = new address[](_size);
 
-    for (uint256 i = 0; i < s.stakes.length; i++) {
-      blockNumbers[i] = s.stakes[i].blockNumber;
-      amounts[i] = s.stakes[i].amount;
-      unstaked[i] = s.stakes[i].unstaked;
-      stakedBy[i] = s.stakes[i].stakedBy;
+    for (uint256 i = 0; i < _sc.personalStakingHistory.length; i++) {
+      HistoryRef memory _h = _sc.personalStakingHistory[i];
+      Stake memory _s = stakeHolders[_h.stakedBy].fors[_stakeFor].stakes[_h.idx];
+      blockNumbers[i] = _s.blockNumber;
+      amounts[i] = _s.amount;
+      unstaked[i] = _s.unstaked;
+      stakedBy[i] = _sc.personalStakingHistory[i].stakedBy;
     }
-
-    return (blockNumbers, amounts, unstaked, stakedBy);
   }
 
   /**
@@ -221,9 +242,10 @@ contract ERC900 is IERC900, Pausable {
     returns (uint256 , uint256)
   {
     stakeHolders[_stakeFor].total = stakeHolders[_stakeFor].total.add(_amount);
-    Stake memory s = Stake(block.number, _amount, 0, _stakedBy);
-    stakeHolders[_stakeFor].stakes.push(s);
-    stakeHolders[_stakedBy].fors[_stakeFor].stakes.push(s);
+    Stake memory s = Stake(block.number, _amount, 0);
+    uint256 _l = stakeHolders[_stakedBy].fors[_stakeFor].stakes.push(s);
+    HistoryRef memory _h = HistoryRef(_stakedBy, _l-1);
+    stakeHolders[_stakeFor].personalStakingHistory.push(_h);
     emit Staked(_stakeFor, s.amount, totalStakedFor(_stakeFor), _stakedBy);
     return (s.blockNumber, s.amount);
   }
@@ -231,30 +253,31 @@ contract ERC900 is IERC900, Pausable {
   /**
    * @dev Helper function to withdraw stakes back to the original _stakedBy
    * @param _stakedBy address The sender that created the stake
+   * @param _stakeFor address The address for which tokens are being unstaken
    * @param _amount uint256 The amount to withdraw. Any exceeding amount will be mapped to the maximum available stake amount.
    */
-  function withdrawStake(address _stakedBy, address _unstakeFor, uint256 _amount)
+  function withdrawStake(address _stakedBy, address _stakeFor, uint256 _amount)
     internal
     whenNotPaused
     returns(uint256[] memory blockNumbers, uint256[] memory amounts)
   {
-    StakedForContract storage sc = stakeHolders[_stakedBy].fors[_unstakeFor];
+    StakingStructure storage ss = stakeHolders[_stakedBy].fors[_stakeFor];
     uint256 _totalUnstaked = 0;
     uint256 l = 0;
-    blockNumbers = new uint256[](sc.stakes.length);
-    amounts = new uint256[](sc.stakes.length);
-    while(_amount > 0 && sc.stakeIndex < sc.stakes.length) {
-      Stake storage s = sc.stakes[sc.stakeIndex];
+    blockNumbers = new uint256[](ss.stakes.length);
+    amounts = new uint256[](ss.stakes.length);
+    while(_amount > 0 && ss.stakeIndex < ss.stakes.length) {
+      Stake storage s = ss.stakes[ss.stakeIndex];
       uint256 _remainder = s.amount.sub(s.unstaked);
       uint256 _unstake = Math.min(_amount, _remainder);
-      s.unstaked = s.unstaked.add(_unstake);
       _amount = _amount.sub(_unstake);
+      s.unstaked = s.unstaked.add(_unstake);
       _totalUnstaked = _totalUnstaked.add(_unstake);
-      stakeHolders[_unstakeFor].total = stakeHolders[_unstakeFor].total.sub(_unstake);
+      stakeHolders[_stakeFor].total = stakeHolders[_stakeFor].total.sub(_unstake);
       // Add safe check in case of contract vulnerability
       require(s.amount>=s.unstaked, "Inconsistent staking state.");
-      if (s.amount == s.unstaked) sc.stakeIndex++;
-      emit Unstaked(_unstakeFor, _unstake, totalStakedFor(_unstakeFor), _stakedBy);
+      if (s.amount == s.unstaked) ss.stakeIndex++;
+      emit Unstaked(_stakeFor, _unstake, totalStakedFor(_stakeFor), _stakedBy);
       blockNumbers[l] = s.blockNumber;
       amounts[l] = _unstake;
       l++;

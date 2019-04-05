@@ -137,6 +137,20 @@ contract ZtickyStake is IZtickyStake, ERC900, Destructible, HasNoEther, Backend 
     return getShareRatio(sharesOf(_shareHolder), totalShares());
   }
 
+  function shareRatioAtMaturityFor(address _stakeFor)
+  public
+  view
+  returns(uint256) {
+    return shareRatioAtMaturity(_stakeFor, _stakeFor);
+  }
+
+  function stakedTokenAtMaturityFor(address _stakeFor)
+  public
+  view
+  returns(uint256) {
+    return stakedTokenAtMaturity(_stakeFor, _stakeFor);
+  }
+
   function shareRatioAtMaturity(address _stakedBy, address _stakeFor)
   public
   view

@@ -26,13 +26,22 @@ module.exports = async function(deployer) {
 
     await z.mint(accounts[0], a1, {from: accounts[0]});
     await zcz.transfer(accounts[1], a2,  {from: accounts[0]});
+    await zcz.transfer(accounts[1], a2,  {from: accounts[0]});
     await zcz.transfer(accounts[2], a2,  {from: accounts[0]});
     await zcz.transfer(accounts[3], a2,  {from: accounts[0]});
     await zcz.transfer(accounts[4], a2,  {from: accounts[0]});
     await z.stake(a3, {from: accounts[0]});
+    await z.stake(a2, {from: accounts[0]});
+    await z.stake(a3, {from: accounts[0]});
     await z.stake(a2, {from: accounts[1]});
+    await z.stake(a3, {from: accounts[1]});
     await z.stake(a3, {from: accounts[2]});
     await zstake.changeMinimumLockTime(web3.utils.toBN("100"), {from: accounts[1]});
+    await z.unstake(a2, {from: accounts[0]});
+    await z.unstake(a3, {from: accounts[1]});
+    await z.unstake(a3, {from: accounts[1]});
+    await z.unstake(a3, {from: accounts[1]});
+    await z.unstake(a3, {from: accounts[0]});
 
   }
 }

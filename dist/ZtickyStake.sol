@@ -4,6 +4,28 @@
 pragma solidity ^0.5.2;
 
 interface IZtickyStake {
+
+  //ZtickyStake
+  function isZStake() external pure returns(bool);
+  function totalShares() external view returns (uint256);
+  function sharesOf(address _shareHolder) external view returns (uint256);
+  function shareRatioOf(address _shareHolder) external view returns (uint256);
+  function authorizedStake(uint256 _amount) external returns (bool);
+  function authorizedUnstake(uint256 _amount) external returns (uint256);
+  function authorizedStakeFor(address _stakeFor, uint256 _amount) external returns (bool);
+  function authorizedUnstakeFor(address _stakeFor, uint256 _amount) external returns (uint256);
+  function changeMinimumLockTime(uint256 _newMinimumLockTime) external returns (bool);
+
+  //ERC900
+  function stake(uint256 amount) external;
+  function stakeFor(address user, uint256 amount) external;
+  function unstake(uint256 amount) external;
+  function unstakeFor(address user, uint256 amount) external;
+  function totalStakedFor(address addr) external view returns (uint256);
+  function totalStaked() external view returns (uint256);
+  function token() external view returns (address);
+  function supportsHistory() external pure returns (bool);
+
   //Backend
   function isBackend() external pure returns (bool);
   function isFrontend(address account) external view returns (bool);
@@ -33,30 +55,11 @@ interface IZtickyStake {
   function destroy() external;
   function destroyAndSend(address payable _recipient) external;
 
-  //ERC900
-  function stake(uint256 amount, bytes calldata data) external;
-  function stakeFor(address user, uint256 amount, bytes calldata data) external;
-  function unstake(uint256 amount, bytes calldata data) external;
-  function unstakeFor(address user, uint256 amount, bytes calldata data) external;
-  function totalStakedFor(address addr) external view returns (uint256);
-  function totalStaked() external view returns (uint256);
-  function token() external view returns (address);
-  function supportsHistory() external pure returns (bool);
-
-  //ZtickyStake
-  function totalShares() external view returns (uint256);
-  function sharesOf(address _shareHolder) external view returns (uint256);
-  function shareRatioOf(address _shareHolder) external view returns (uint256);
-  function authorizedStake(uint256 _amount, bytes calldata _data) external returns (bool);
-  function authorizedUnstake(uint256 _amount, bytes calldata _data) external returns (uint256);
-  function authorizedStakeFor(address _stakeFor, uint256 _amount, bytes calldata _data) external returns (bool);
-  function authorizedUnstakeFor(address _stakeFor, uint256 _amount, bytes calldata _data) external returns (uint256);
-  function changeMinimumLockTime(uint256 _newMinimumLockTime) external returns (bool);
 
 
 
-  event Staked(address indexed user, uint256 amount, uint256 total, bytes data);
-  event Unstaked(address indexed user, uint256 amount, uint256 total, bytes data);
+  event Staked(address indexed user, uint256 amount, uint256 total, address indexed stakedBy);
+  event Unstaked(address indexed user, uint256 amount, uint256 total, address indexed stakedBy);
   event Paused(address account);
   event Unpaused(address account);
   event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
@@ -692,6 +695,106 @@ contract ERC20 is IERC20 {
     }
 }
 
+// File: contracts/utils/Math.sol
+
+pragma solidity ^0.5.2;
+
+/**
+ * @title Math
+ * @dev Assorted math operations
+ */
+library Math {
+    /**
+     * @dev Returns the largest of two numbers.
+     */
+    function max(uint256 a, uint256 b) internal pure returns (uint256) {
+        return a >= b ? a : b;
+    }
+
+    /**
+     * @dev Returns the smallest of two numbers.
+     */
+    function min(uint256 a, uint256 b) internal pure returns (uint256) {
+        return a < b ? a : b;
+    }
+
+    /**
+     * @dev Calculates the average of two numbers. Since these are integers,
+     * averages of an even and odd number cannot be represented, and will be
+     * rounded down.
+     */
+    function average(uint256 a, uint256 b) internal pure returns (uint256) {
+        // (a + b) / 2 can overflow, so we distribute
+        return (a / 2) + (b / 2) + ((a % 2 + b % 2) / 2);
+    }
+}
+
+// File: contracts/utils/Arrays.sol
+
+pragma solidity ^0.5.2;
+
+/**
+ * @title Arrays
+ * @dev Utility library of inline array functions
+ */
+library Arrays {
+
+    /**
+     * @dev Upper bound search function which is kind of binary search algorithm. It searches sorted
+     * array to find index of the element value. If element is found then returns its index otherwise
+     * it returns index of first element which is greater than searched value. If searched element is
+     * bigger than any array element function then returns first index after last element (i.e. all
+     * values inside the array are smaller than the target). Complexity O(log n).
+     * @param array The array sorted in ascending order.
+     * @param element The element's value to be found.
+     * @return The calculated index value. Returns 0 for empty array.
+     */
+    function findUpperBound(uint256[] storage array, uint256 element) internal view returns (uint256) {
+        if (array.length == 0) {
+            return 0;
+        }
+
+        uint256 low = 0;
+        uint256 high = array.length;
+
+        while (low < high) {
+            uint256 mid = Math.average(low, high);
+
+            // Note that mid will always be strictly less than high (i.e. it will be a valid array index)
+            // because Math.average rounds down (it does integer division with truncation).
+            if (array[mid] > element) {
+                high = mid;
+            } else {
+                low = mid + 1;
+            }
+        }
+
+        // At this point `low` is the exclusive upper bound. We will return the inclusive upper bound.
+        if (low > 0 && array[low - 1] == element) {
+            return low - 1;
+        } else {
+            return low;
+        }
+    }
+
+    /**
+     * @dev Returns a subarray of the array element in input.
+     * @param array The original array.
+     * @param from The first zero-indexed element of the array to be considered in the sub-array result.
+     * @param to The first zero-indexed element of the array to be excluded in the sub-array result.
+     * @return The calculated subarray. If from equals to the result is an empty array.
+     */
+    function subarray(uint256[] memory array, uint256 from, uint256 to) internal pure returns (uint256[] memory out) {
+      require(array.length >= to);
+      require(to >= from);
+      uint256 l = to - from;
+      out = new uint256[](l);
+      for (uint256 i = 0; i < l; i++) {
+        out[i] = array[from + i];
+      }
+    }
+}
+
 // File: contracts/roles/PauserRole.sol
 
 pragma solidity ^0.5.2;
@@ -797,40 +900,6 @@ contract Pausable is PauserRole {
     }
 }
 
-// File: contracts/utils/Math.sol
-
-pragma solidity ^0.5.2;
-
-/**
- * @title Math
- * @dev Assorted math operations
- */
-library Math {
-    /**
-     * @dev Returns the largest of two numbers.
-     */
-    function max(uint256 a, uint256 b) internal pure returns (uint256) {
-        return a >= b ? a : b;
-    }
-
-    /**
-     * @dev Returns the smallest of two numbers.
-     */
-    function min(uint256 a, uint256 b) internal pure returns (uint256) {
-        return a < b ? a : b;
-    }
-
-    /**
-     * @dev Calculates the average of two numbers. Since these are integers,
-     * averages of an even and odd number cannot be represented, and will be
-     * rounded down.
-     */
-    function average(uint256 a, uint256 b) internal pure returns (uint256) {
-        // (a + b) / 2 can overflow, so we distribute
-        return (a / 2) + (b / 2) + ((a % 2 + b % 2) / 2);
-    }
-}
-
 // File: contracts/ERC900/IERC900.sol
 
 pragma solidity ^0.5.2;
@@ -841,12 +910,12 @@ pragma solidity ^0.5.2;
  * @dev See https://github.com/ethereum/EIPs/blob/master/EIPS/eip-900.md
  */
 interface IERC900 {
-  event Staked(address indexed user, uint256 amount, uint256 total, bytes data);
-  event Unstaked(address indexed user, uint256 amount, uint256 total, bytes data);
+  event Staked(address indexed user, uint256 amount, uint256 total, address indexed stakedBy);
+  event Unstaked(address indexed user, uint256 amount, uint256 total, address indexed stakedBy);
 
-  function stake(uint256 amount, bytes calldata data) external;
-  function stakeFor(address user, uint256 amount, bytes calldata data) external;
-  function unstake(uint256 amount, bytes calldata data) external;
+  function stake(uint256 amount) external;
+  function stakeFor(address user, uint256 amount) external;
+  function unstake(uint256 amount) external;
   function totalStakedFor(address addr) external view returns (uint256);
   function totalStaked() external view returns (uint256);
   function token() external view returns (address);
@@ -861,7 +930,7 @@ interface IERC900 {
 // File: contracts/ERC900/ERC900.sol
 
 /* solium-disable security/no-block-members */
-pragma solidity ^0.5.2;
+pragma solidity ^0.5.2;
 
 
 /**
@@ -871,6 +940,7 @@ pragma solidity ^0.5.2;
 contract ERC900 is IERC900, Pausable {
   // @TODO: deploy this separately so we don't have to deploy it multiple times for each contract
   using SafeMath for uint256;
+  using Arrays for uint256[];
 
   // Token used for staking
   ERC20 public ERC20tokenContract;
@@ -892,6 +962,7 @@ contract ERC900 is IERC900, Pausable {
     uint256 amount;
     uint256 unstaked;
     address stakedBy;
+    uint256 idx;
   }
 
   struct StakedForContract {
@@ -937,10 +1008,9 @@ contract ERC900 is IERC900, Pausable {
    * @notice Stakes a certain amount of tokens, this MUST transfer the given amount from the user
    * @notice MUST trigger Staked event
    * @param _amount uint256 the amount of tokens to stake
-   * @param _data bytes optional data to include in the Stake event
    */
-  function stake(uint256 _amount, bytes memory _data) public {
-    createStake(msg.sender, msg.sender, _amount, _data);
+  function stake(uint256 _amount) public {
+    createStake(msg.sender, msg.sender, _amount);
   }
 
   /**
@@ -948,10 +1018,9 @@ contract ERC900 is IERC900, Pausable {
    * @notice MUST trigger Staked event
    * @param _stakeFor address the address the tokens are staked for
    * @param _amount uint256 the amount of tokens to stake
-   * @param _data bytes optional data to include in the Stake event
    */
-  function stakeFor(address _stakeFor, uint256 _amount, bytes memory _data) public {
-    createStake(msg.sender, _stakeFor, _amount,  _data);
+  function stakeFor(address _stakeFor, uint256 _amount) public {
+    createStake(msg.sender, _stakeFor, _amount);
   }
 
   /**
@@ -960,10 +1029,9 @@ contract ERC900 is IERC900, Pausable {
    * @dev Users can only unstake starting from their oldest active stake. Upon releasing that stake, the tokens will be
    *  transferred back to their account, and their stakeIndex will increment to the next active stake.
    * @param _amount uint256 the amount of tokens to unstake
-   * @param _data bytes optional data to include in the Unstake event
    */
-  function unstake(uint256 _amount, bytes memory _data) public {
-    withdrawStake(msg.sender, msg.sender, _amount, _data);
+  function unstake(uint256 _amount) public {
+    withdrawStake(msg.sender, msg.sender, _amount);
   }
 
   /**
@@ -973,10 +1041,9 @@ contract ERC900 is IERC900, Pausable {
    *  transferred back to their owner, and their stakeIndex will increment to the next active stake.
    * @param _stakeFor address the user the tokens are staked for
    * @param _amount uint256 the amount of tokens to unstake
-   * @param _data bytes optional data to include in the Unstake event
    */
-  function unstakeFor(address _stakeFor, uint256 _amount, bytes memory _data) public {
-    withdrawStake(msg.sender, _stakeFor, _amount, _data);
+  function unstakeFor(address _stakeFor, uint256 _amount) public {
+    withdrawStake(msg.sender, _stakeFor, _amount);
   }
 
   /**
@@ -1014,29 +1081,53 @@ contract ERC900 is IERC900, Pausable {
   }
 
   /**
-   * @dev Helper function to get specific properties of all of the personal stakes created by an address
-   * @param _address address The address to query
-   * @return (uint256[], uint256[], address[])
-   *  timestamps array, amounts array, stakedFor array
+   * @dev Helper function to get specific properties of active stakes created by an address for another address
+   * @param _stakedBy address The address that initiated the stake
+   * @param _stakeFor address The address for which it is being staked
+   * @return (uint256[], uint256[])
+   *  timestamps array, amounts array
    */
-  function getPersonalStakes(address _address)
+  function getActiveStakesBy(address _stakedBy, address _stakeFor)
     view
     public
-    returns(uint256[] memory, uint256[] memory, address[] memory)
+    returns(uint256[] memory blockNumbers, uint256[] memory amounts)
+  {
+    StakedForContract storage s = stakeHolders[_stakedBy].fors[_stakeFor];
+    uint256 arraySize = s.stakes.length.sub(s.stakeIndex);
+    blockNumbers = new uint256[](arraySize);
+    amounts = new uint256[](arraySize);
+
+    for (uint256 i = s.stakeIndex; i < s.stakes.length; i++) {
+      blockNumbers[i] = s.stakes[i].blockNumber;
+      amounts[i] = s.stakes[i].amount.sub(s.stakes[i].unstaked);
+    }
+    return (blockNumbers, amounts);
+  }
+
+  /**
+   * @dev Helper function to get specific properties of all of the personal stakes created by an address
+   * @param _address address The address to query
+   * @return (uint256[], uint256[], uint256[], address[])
+   *  timestamps array, amounts array, unstaked array, stakedFor array
+   */
+  function getStakingHistoryOf(address _address)
+    view
+    public
+    returns(uint256[] memory blockNumbers, uint256[] memory amounts, uint256[] memory unstaked, address[] memory stakedBy)
   {
     StakeContract storage s = stakeHolders[_address];
     uint256 arraySize = s.stakes.length;
-    uint256[] memory blockNumbers = new uint256[](arraySize);
-    uint256[] memory amounts = new uint256[](arraySize);
-    address[] memory stakedBy = new address[](arraySize);
+    blockNumbers = new uint256[](arraySize);
+    amounts = new uint256[](arraySize);
+    unstaked = new uint256[](arraySize);
+    stakedBy = new address[](arraySize);
 
     for (uint256 i = 0; i < s.stakes.length; i++) {
       blockNumbers[i] = s.stakes[i].blockNumber;
-      amounts[i] = s.stakes[i].amount.sub(s.stakes[i].unstaked);
+      amounts[i] = s.stakes[i].amount;
+      unstaked[i] = s.stakes[i].unstaked;
       stakedBy[i] = s.stakes[i].stakedBy;
     }
-
-    return (blockNumbers, amounts, stakedBy);
   }
 
   /**
@@ -1044,19 +1135,19 @@ contract ERC900 is IERC900, Pausable {
    * @param _stakedBy address The sender requesting the stake
    * @param _stakeFor address The address the stake is being created for
    * @param _amount uint256 The number of tokens being staked
-   * @param _data bytes optional data to include in the Stake event
    */
-  function createStake(address _stakedBy, address _stakeFor, uint256 _amount, bytes memory _data)
+  function createStake(address _stakedBy, address _stakeFor, uint256 _amount)
     internal
     whenNotPaused
     canStake(_stakedBy, _amount)
     returns (uint256 , uint256)
   {
     stakeHolders[_stakeFor].total = stakeHolders[_stakeFor].total.add(_amount);
-    Stake memory s = Stake(block.number, _amount, 0, _stakedBy);
-    stakeHolders[_stakeFor].stakes.push(s);
+    Stake memory s = Stake(block.number, _amount, 0, _stakedBy, 0);
+    uint256 l = stakeHolders[_stakeFor].stakes.push(s);
+    s = Stake(block.number, _amount, 0, _stakedBy, l-1);
     stakeHolders[_stakedBy].fors[_stakeFor].stakes.push(s);
-    emit Staked(_stakeFor, s.amount, totalStakedFor(_stakeFor), _data);
+    emit Staked(_stakeFor, s.amount, totalStakedFor(_stakeFor), _stakedBy);
     return (s.blockNumber, s.amount);
   }
 
@@ -1064,38 +1155,38 @@ contract ERC900 is IERC900, Pausable {
    * @dev Helper function to withdraw stakes back to the original _stakedBy
    * @param _stakedBy address The sender that created the stake
    * @param _amount uint256 The amount to withdraw. Any exceeding amount will be mapped to the maximum available stake amount.
-   * @param _data bytes optional data to include in the Unstake event
    */
-  function withdrawStake(address _stakedBy, address _unstakeFor, uint256 _amount, bytes memory _data)
+  function withdrawStake(address _stakedBy, address _unstakeFor, uint256 _amount)
     internal
     whenNotPaused
     returns(uint256[] memory blockNumbers, uint256[] memory amounts)
   {
     StakedForContract storage sc = stakeHolders[_stakedBy].fors[_unstakeFor];
     uint256 _totalUnstaked = 0;
-    uint256 i = 0;
+    uint256 l = 0;
     blockNumbers = new uint256[](sc.stakes.length);
     amounts = new uint256[](sc.stakes.length);
-    while(_amount > 0 || sc.stakeIndex < sc.stakes.length) {
+    while(_amount > 0 && sc.stakeIndex < sc.stakes.length) {
       Stake storage s = sc.stakes[sc.stakeIndex];
       uint256 _remainder = s.amount.sub(s.unstaked);
       uint256 _unstake = Math.min(_amount, _remainder);
       s.unstaked = s.unstaked.add(_unstake);
+      stakeHolders[_unstakeFor].stakes[s.idx].unstaked = s.unstaked;
       _amount = _amount.sub(_unstake);
       _totalUnstaked = _totalUnstaked.add(_unstake);
       stakeHolders[_unstakeFor].total = stakeHolders[_unstakeFor].total.sub(_unstake);
       // Add safe check in case of contract vulnerability
       require(s.amount>=s.unstaked, "Inconsistent staking state.");
       if (s.amount == s.unstaked) sc.stakeIndex++;
-      emit Unstaked(_unstakeFor, _unstake, totalStakedFor(_unstakeFor), _data);
-      blockNumbers[i] = s.blockNumber;
-      amounts[i] = _unstake;
-      i++;
+      emit Unstaked(_unstakeFor, _unstake, totalStakedFor(_unstakeFor), _stakedBy);
+      blockNumbers[l] = s.blockNumber;
+      amounts[l] = _unstake;
+      l++;
     }
-    if (_totalUnstaked == 0) return (blockNumbers, amounts);
     // Transfer the staked tokens from this contract back to the sender
     // Notice that we are using transfer instead of transferFrom here.
-    require(ERC20tokenContract.transfer(_stakedBy, _totalUnstaked), "Unable to withdraw stake");
+    if (_totalUnstaked != 0) require(ERC20tokenContract.transfer(_stakedBy, _totalUnstaked), "Unable to withdraw stake");
+    return  (blockNumbers.subarray(0,l), amounts.subarray(0,l));
   }
 }
 
@@ -1118,6 +1209,7 @@ contract ZtickyStake is IZtickyStake, ERC900, Destructible, HasNoEther, Backend 
     uint256 outstandingShares;
     uint256 lastUpdated;
   }
+
   ShareContract public total;
   mapping (address => ShareContract) public shareHolders;
 
@@ -1134,16 +1226,17 @@ contract ZtickyStake is IZtickyStake, ERC900, Destructible, HasNoEther, Backend 
   returns (uint256 _outstandingShares)
   {
     uint256 _delta = block.number.sub(_updatedAt);
-    _outstandingShares = _previousShare + _delta.mul(_previousStake);
+    _outstandingShares = _previousShare.add(_delta.mul(_previousStake));
   }
 
   function calculateCurrentSharesFromHistory(uint256[] memory blockNumbers, uint256[] memory amounts, uint256 _minimumLockTime)
   internal
   view
-  returns (uint256 _outstandingShares)
+  returns (uint256 _outstandingShares, uint256 _stakedTokenAtMaturity)
   {
     for (uint256 i = 0; i < blockNumbers.length; i++) {
       if (block.number.sub(blockNumbers[i]) < _minimumLockTime) continue;
+      _stakedTokenAtMaturity = _stakedTokenAtMaturity.add(amounts[i]);
       _outstandingShares = _outstandingShares.add(calculateCurrentSharesFromPreviousState(0, amounts[i], blockNumbers[i]));
     }
   }
@@ -1170,31 +1263,38 @@ contract ZtickyStake is IZtickyStake, ERC900, Destructible, HasNoEther, Backend 
     shareHolders[_shareHolder].lastUpdated = block.number;
   }
 
-  function createStake(address _stakedBy, address _stakeFor, uint256 _amount, bytes memory _data)
+  function createStake(address _stakedBy, address _stakeFor, uint256 _amount)
   internal
   returns (uint256 , uint256)
   {
     updateShares();
     updateSharesOf(_stakeFor);
-    return ERC900.createStake(_stakedBy, _stakeFor, _amount, _data);
+    return ERC900.createStake(_stakedBy, _stakeFor, _amount);
   }
 
-  function withdrawStake(address _stakedBy, address _stakeFor, uint256 _amount, bytes memory _data)
+  function withdrawStake(address _stakedBy, address _stakeFor, uint256 _amount)
   internal
   returns(uint256[] memory blockNumbers, uint256[] memory amounts)
   {
     updateShares();
     updateSharesOf(_stakeFor);
-    (blockNumbers, amounts) = ERC900.withdrawStake(_stakedBy, _stakeFor, _amount, _data);
+    (blockNumbers, amounts) = ERC900.withdrawStake(_stakedBy, _stakeFor, _amount);
     uint256 _unstakedShare = 0;
     uint256 n = block.number;
     for (uint256 i = 0; i < amounts.length; i++) {
       uint256 _delta = n.sub(blockNumbers[i]);
       _unstakedShare = _unstakedShare.add(_delta.mul(amounts[i]));
-      shareHolders[_stakeFor].outstandingShares = shareHolders[_stakeFor].outstandingShares.sub(_unstakedShare);
-      shareHolders[_stakeFor].lastUpdated = n;
     }
+    shareHolders[_stakeFor].outstandingShares = shareHolders[_stakeFor].outstandingShares.sub(_unstakedShare);
     total.outstandingShares = total.outstandingShares.sub(_unstakedShare);
+  }
+
+  function isZStake()
+  public
+  pure
+  returns(bool)
+  {
+    return true;
   }
 
   function totalShares()
@@ -1222,6 +1322,24 @@ contract ZtickyStake is IZtickyStake, ERC900, Destructible, HasNoEther, Backend 
     return getShareRatio(sharesOf(_shareHolder), totalShares());
   }
 
+  function shareRatioAtMaturity(address _stakedBy, address _stakeFor)
+  public
+  view
+  returns(uint256) {
+    (uint256[] memory blockNumbers, uint256[] memory amounts) = ERC900.getActiveStakesBy(_stakedBy, _stakeFor);
+    (uint256 _outstandingShares, ) = calculateCurrentSharesFromHistory(blockNumbers, amounts, minimumLockTime);
+    return getShareRatio(_outstandingShares, totalShares());
+  }
+
+  function stakedTokenAtMaturity(address _stakedBy, address _stakeFor)
+  public
+  view
+  returns(uint256) {
+    (uint256[] memory blockNumbers, uint256[] memory amounts) = ERC900.getActiveStakesBy(_stakedBy, _stakeFor);
+    (, uint256 _stakedTokenAtMaturity) = calculateCurrentSharesFromHistory(blockNumbers, amounts, minimumLockTime);
+    return _stakedTokenAtMaturity;
+  }
+
   function changeMinimumLockTime(uint256 _newMinimumLockTime)
   onlyBackendAdmin
   public
@@ -1235,15 +1353,14 @@ contract ZtickyStake is IZtickyStake, ERC900, Destructible, HasNoEther, Backend 
    * @notice Stakes a certain amount of tokens, this MUST transfer the given amount from the user
    * @notice MUST trigger Staked event
    * @param _amount uint256 the amount of tokens to stake
-   * @param _data bytes optional data to include in the Stake event
    */
-  function authorizedStakeFor(address _stakeFor, uint256 _amount, bytes memory _data)
+  function authorizedStakeFor(address _stakeFor, uint256 _amount)
   onlyFrontend
   whenNotPaused
   public
   returns (bool)
   {
-    createStake(tx.origin, _stakeFor, _amount, _data);
+    createStake(tx.origin, _stakeFor, _amount);
     return true;
   }
 
@@ -1253,30 +1370,29 @@ contract ZtickyStake is IZtickyStake, ERC900, Destructible, HasNoEther, Backend 
   * @dev Users can only unstake starting from their oldest active stake. Upon releasing that stake, the tokens will be
   *  transferred back to their account, and their stakeIndex will increment to the next active stake.
   * @param _amount uint256 the amount of tokens to unstake
-  * @param _data bytes optional data to include in the Unstake event
   */
-  function authorizedUnstakeFor(address _stakeFor, uint256 _amount, bytes memory _data)
+  function authorizedUnstakeFor(address _stakeFor, uint256 _amount)
   onlyFrontend
   whenNotPaused
   public
   returns (uint256)
   {
     uint256 _totalShares = totalShares();
-    (uint256[] memory blockNumbers, uint256[] memory amounts) =  withdrawStake(tx.origin, _stakeFor, _amount, _data);
-    return getShareRatio(calculateCurrentSharesFromHistory(blockNumbers, amounts, minimumLockTime), _totalShares);
+    (uint256[] memory blockNumbers, uint256[] memory amounts) =  withdrawStake(tx.origin, _stakeFor, _amount);
+    (uint256 _outstandingShares,) = calculateCurrentSharesFromHistory(blockNumbers, amounts, minimumLockTime);
+    return getShareRatio(_outstandingShares, _totalShares);
   }
 
   /**
    * @notice Stakes a certain amount of tokens, this MUST transfer the given amount from the user
    * @notice MUST trigger Staked event
    * @param _amount uint256 the amount of tokens to stake
-   * @param _data bytes optional data to include in the Stake event
    */
-  function authorizedStake(uint256 _amount, bytes memory _data)
+  function authorizedStake(uint256 _amount)
   public
   returns (bool)
   {
-    return authorizedStakeFor(tx.origin, _amount, _data);
+    return authorizedStakeFor(tx.origin, _amount);
   }
 
 
@@ -1284,13 +1400,12 @@ contract ZtickyStake is IZtickyStake, ERC900, Destructible, HasNoEther, Backend 
    * @notice Stakes a certain amount of tokens, this MUST transfer the given amount from the user
    * @notice MUST trigger Staked event
    * @param _amount uint256 the amount of tokens to stake
-   * @param _data bytes optional data to include in the Stake event
    */
-  function authorizedUnstake(uint256 _amount, bytes memory _data)
+  function authorizedUnstake(uint256 _amount)
   public
   returns (uint256)
   {
-    return authorizedUnstakeFor(tx.origin, _amount, _data);
+    return authorizedUnstakeFor(tx.origin, _amount);
   }
 
   /**

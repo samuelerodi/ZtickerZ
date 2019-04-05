@@ -4,6 +4,28 @@
 pragma solidity ^0.5.2;
 
 interface IZtickyStake {
+
+  //ZtickyStake
+  function isZStake() external pure returns(bool);
+  function totalShares() external view returns (uint256);
+  function sharesOf(address _shareHolder) external view returns (uint256);
+  function shareRatioOf(address _shareHolder) external view returns (uint256);
+  function authorizedStake(uint256 _amount) external returns (bool);
+  function authorizedUnstake(uint256 _amount) external returns (uint256);
+  function authorizedStakeFor(address _stakeFor, uint256 _amount) external returns (bool);
+  function authorizedUnstakeFor(address _stakeFor, uint256 _amount) external returns (uint256);
+  function changeMinimumLockTime(uint256 _newMinimumLockTime) external returns (bool);
+
+  //ERC900
+  function stake(uint256 amount) external;
+  function stakeFor(address user, uint256 amount) external;
+  function unstake(uint256 amount) external;
+  function unstakeFor(address user, uint256 amount) external;
+  function totalStakedFor(address addr) external view returns (uint256);
+  function totalStaked() external view returns (uint256);
+  function token() external view returns (address);
+  function supportsHistory() external pure returns (bool);
+
   //Backend
   function isBackend() external pure returns (bool);
   function isFrontend(address account) external view returns (bool);
@@ -33,30 +55,11 @@ interface IZtickyStake {
   function destroy() external;
   function destroyAndSend(address payable _recipient) external;
 
-  //ERC900
-  function stake(uint256 amount, bytes calldata data) external;
-  function stakeFor(address user, uint256 amount, bytes calldata data) external;
-  function unstake(uint256 amount, bytes calldata data) external;
-  function unstakeFor(address user, uint256 amount, bytes calldata data) external;
-  function totalStakedFor(address addr) external view returns (uint256);
-  function totalStaked() external view returns (uint256);
-  function token() external view returns (address);
-  function supportsHistory() external pure returns (bool);
-
-  //ZtickyStake
-  function totalShares() external view returns (uint256);
-  function sharesOf(address _shareHolder) external view returns (uint256);
-  function shareRatioOf(address _shareHolder) external view returns (uint256);
-  function authorizedStake(uint256 _amount, bytes calldata _data) external returns (bool);
-  function authorizedUnstake(uint256 _amount, bytes calldata _data) external returns (uint256);
-  function authorizedStakeFor(address _stakeFor, uint256 _amount, bytes calldata _data) external returns (bool);
-  function authorizedUnstakeFor(address _stakeFor, uint256 _amount, bytes calldata _data) external returns (uint256);
-  function changeMinimumLockTime(uint256 _newMinimumLockTime) external returns (bool);
 
 
 
-  event Staked(address indexed user, uint256 amount, uint256 total, bytes data);
-  event Unstaked(address indexed user, uint256 amount, uint256 total, bytes data);
+  event Staked(address indexed user, uint256 amount, uint256 total, address indexed stakedBy);
+  event Unstaked(address indexed user, uint256 amount, uint256 total, address indexed stakedBy);
   event Paused(address account);
   event Unpaused(address account);
   event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
@@ -73,7 +76,9 @@ interface IZtickyStake {
 pragma solidity ^0.5.2;
 
 interface IZtickyCoinZ {
-  //BASE
+
+  //ZtickyCoinZ
+  function isZCZ() external pure returns(bool);
   function mint(address _to, uint256 _amount) external returns(bool);
   function burn(uint256 _value) external returns(bool);
   function authorizedApprove(address spender, uint256 value) external returns (bool);
@@ -261,11 +266,9 @@ pragma solidity ^0.5.2;
  * Current implementation includes a pointer to the ZCZ and ZStake contract.
  */
 contract Frontend is Ownable{
-  address private _ZCZAddress = address(0);
-  IZtickyCoinZ private _ZCZ = IZtickyCoinZ(_ZCZAddress);
 
-  address private _ZStakeAddress = address(0);
-  IZtickyStake private _ZStake = IZtickyStake(_ZStakeAddress);
+  IZtickyCoinZ private _ZCZ = IZtickyCoinZ(address(0));
+  IZtickyStake private _ZStake = IZtickyStake(address(0));
 
   /**
    * @dev Make sure the entire logic contract has been correctly configured.
@@ -275,8 +278,8 @@ contract Frontend is Ownable{
   view
   returns(bool)
   {
-    require(_ZCZAddress!=address(0), "_ZCZ contract not configured.");
-    require(_ZStakeAddress!=address(0), "ZStake contract not configured.");
+    require(address(_ZCZ)!=address(0), "_ZCZ contract not configured.");
+    require(address(_ZStake)!=address(0), "ZStake contract not configured.");
     return true;
   }
 
@@ -290,9 +293,8 @@ contract Frontend is Ownable{
   returns(bool)
   {
     require(_newAddress!=address(0), "Address must be specified.");
-    require(IZtickyStake(_newAddress).isBackend(), "Address is not a valid backend contract.");
-    _ZStakeAddress = _newAddress;
-    _ZStake =IZtickyStake(_ZStakeAddress);
+    require(IZtickyStake(_newAddress).isZStake(), "Address is not a valid backend contract.");
+    _ZStake =IZtickyStake(_newAddress);
     return true;
   }
 
@@ -306,9 +308,8 @@ contract Frontend is Ownable{
   returns(bool)
   {
     require(_newAddress!=address(0), "Address must be specified.");
-    require(IZtickyCoinZ(_newAddress).isBackend(), "Address is not a valid backend contract.");
-    _ZCZAddress = _newAddress;
-    _ZCZ =IZtickyCoinZ(_ZCZAddress);
+    require(IZtickyCoinZ(_newAddress).isZCZ(), "Address is not a valid backend contract.");
+    _ZCZ =IZtickyCoinZ(_newAddress);
     return true;
   }
 
@@ -320,6 +321,7 @@ contract Frontend is Ownable{
   view
   returns(IZtickyCoinZ)
   {
+    require(address(_ZCZ)!=address(0), "ZCZ contract is not configured.");
     return _ZCZ;
   }
 
@@ -331,6 +333,7 @@ contract Frontend is Ownable{
   view
   returns(IZtickyStake)
   {
+    require(address(_ZStake)!=address(0), "ZStake contract is not configured.");
     return _ZStake;
   }
 }
@@ -602,7 +605,7 @@ contract Pausable is PauserRole {
     }
 }
 
-// File: contracts/ZtickerZv01.sol
+// File: contracts/ZtickerZ.sol
 
 pragma solidity ^0.5.2;
 
@@ -639,8 +642,8 @@ contract ZtickerZ is IZtickerZ, Frontend, Destructible, Pausable {
       whenNotPaused
       returns (bool)
     {
-      Frontend.ZCZ().authorizedApprove(address(this), value);
-      Frontend.ZStake().authorizedStake(value, "ZtickerZv01");
+      Frontend.ZCZ().authorizedApprove(address(Frontend.ZStake()), value);
+      Frontend.ZStake().authorizedStake(value);
       return true;
     }
 
@@ -654,8 +657,7 @@ contract ZtickerZ is IZtickerZ, Frontend, Destructible, Pausable {
       whenNotPaused
       returns (bool)
     {
-      Frontend.ZCZ().authorizedApprove(address(this), value);
-      Frontend.ZStake().authorizedUnstake(value, "ZtickerZv01");
+      Frontend.ZStake().authorizedUnstake(value);
       return true;
     }
 }
