@@ -1,9 +1,9 @@
 var ZtickyStake = artifacts.require("ZtickyStake");
 var ZtickyCoinZ = artifacts.require("ZtickyCoinZ");
+var ZtickyBank = artifacts.require("ZtickyBank");
 var ZtickerZ = artifacts.require("ZtickerZ");
 
 const POPULATE_TEST_DATA = true;
-
 
 
 const a1 = web3.utils.toBN(web3.utils.toWei("1000"));
@@ -14,6 +14,7 @@ module.exports = async function(deployer) {
   var z = await ZtickerZ.deployed();
   var zcz = await ZtickyCoinZ.deployed();
   var zstake = await ZtickyStake.deployed();
+  var zbank = await ZtickyBank.deployed();
   var accounts = await web3.eth.getAccounts();
 
   if (deployer.network_id == 100 && POPULATE_TEST_DATA) {
@@ -36,7 +37,7 @@ module.exports = async function(deployer) {
     await z.stake(a2, {from: accounts[1]});
     await z.stake(a3, {from: accounts[1]});
     await z.stake(a3, {from: accounts[2]});
-    await zstake.changeMinimumLockTime(web3.utils.toBN("100"), {from: accounts[1]});
+    await zstake.changeVestingTime(web3.utils.toBN("100"), {from: accounts[1]});
     await z.unstake(a2, {from: accounts[0]});
     await z.unstake(a3, {from: accounts[1]});
     await z.unstake(a3, {from: accounts[1]});

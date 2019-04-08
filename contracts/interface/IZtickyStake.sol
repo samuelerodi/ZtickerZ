@@ -4,14 +4,20 @@ interface IZtickyStake {
 
   //ZtickyStake
   function isZStake() external pure returns(bool);
+  function vestingTime() external view returns (uint256);
+  function totalStakedValue() external view returns (uint256);
   function totalShares() external view returns (uint256);
+  function stakedValueOf(address _shareHolder) external view returns (uint256);
   function sharesOf(address _shareHolder) external view returns (uint256);
-  function shareRatioOf(address _shareHolder) external view returns (uint256);
+  function sharesByFor(address _stakedBy, address _stakeFor) external view returns(uint256);
+  function vestedSharesOf(address _shareHolder) external view returns (uint256);
+  function maturedTokensOf(address _stakeFor) external view  returns(uint256);
+  function maturedTokensByFor(address _stakedBy, address _stakeFor) external view returns(uint256);
   function authorizedStake(uint256 _amount) external returns (bool);
   function authorizedUnstake(uint256 _amount) external returns (uint256);
   function authorizedStakeFor(address _stakeFor, uint256 _amount) external returns (bool);
   function authorizedUnstakeFor(address _stakeFor, uint256 _amount) external returns (uint256);
-  function changeMinimumLockTime(uint256 _newMinimumLockTime) external returns (bool);
+  function changeVestingTime(uint256 _newMinimumLockTime) external returns (bool);
 
   //ERC900
   function stake(uint256 amount) external;

@@ -4,6 +4,7 @@ import '../utils/Ownable.sol';
 
 import '../interface/IZtickyStake.sol';
 import '../interface/IZtickyCoinZ.sol';
+import '../interface/IZtickyBank.sol';
 
 /**
  * @title Frontend
@@ -16,6 +17,7 @@ contract Frontend is Ownable{
 
   IZtickyCoinZ private _ZCZ = IZtickyCoinZ(address(0));
   IZtickyStake private _ZStake = IZtickyStake(address(0));
+  IZtickyBank private _ZBank = IZtickyBank(address(0));
 
   /**
    * @dev Make sure the entire logic contract has been correctly configured.
@@ -27,6 +29,7 @@ contract Frontend is Ownable{
   {
     require(address(_ZCZ)!=address(0), "_ZCZ contract not configured.");
     require(address(_ZStake)!=address(0), "ZStake contract not configured.");
+    require(address(_ZBank)!=address(0), "ZBank contract not configured.");
     return true;
   }
 
@@ -61,6 +64,21 @@ contract Frontend is Ownable{
   }
 
   /**
+   * @dev Change the address of the backend contract.
+   * @param _newAddress The address of the newly deployed contract.
+   */
+  function changeZBankContract(address payable _newAddress)
+  public
+  onlyOwner
+  returns(bool)
+  {
+    require(_newAddress!=address(0), "Address must be specified.");
+    require(IZtickyBank(_newAddress).isZBank(), "Address is not a valid backend contract.");
+    _ZBank =IZtickyBank(_newAddress);
+    return true;
+  }
+
+  /**
    * @dev Return the Backend ZCZ contract.
    */
   function ZCZ()
@@ -82,5 +100,17 @@ contract Frontend is Ownable{
   {
     require(address(_ZStake)!=address(0), "ZStake contract is not configured.");
     return _ZStake;
+  }
+
+  /**
+   * @dev Return the Backend ZBank contract.
+   */
+  function ZBank()
+  public
+  view
+  returns(IZtickyBank)
+  {
+    require(address(_ZBank)!=address(0), "ZStake contract is not configured.");
+    return _ZBank;
   }
 }

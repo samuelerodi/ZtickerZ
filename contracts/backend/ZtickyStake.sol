@@ -2,9 +2,10 @@ pragma solidity ^0.5.2;
 
 import '../interface/IZtickyStake.sol';
 
+import '../interface/IZtickyCoinZ.sol';
 import '../backend/Backend.sol';
 import '../utils/HasNoEther.sol';
-import '../utils/Destructible.sol';
+import '../utils/DestructibleZCZ.sol';
 import "../utils/SafeMath.sol";
 import '../ERC900/ERC900.sol';
 import '../ERC20/ERC20.sol';
@@ -14,67 +15,63 @@ import '../ERC20/ERC20.sol';
  * @dev The ZtickyStake contract is a backend ERC900 contract used as storage for staking features.
  * It doesn't supports history and implements an interface callable exclusively from the logic contract
  */
-contract ZtickyStake is IZtickyStake, ERC900, Destructible, HasNoEther, Backend {
+contract ZtickyStake is IZtickyStake, ERC900, DestructibleZCZ, HasNoEther {
 
   using SafeMath for uint256;
 
-  uint256 public minimumLockTime = 0;
+  uint256 public vestingTime = 0;
+  uint256 public totalShares = 1 ether;
 
   struct ShareContract {
-    uint256 outstandingShares;
+    uint256 stakedValue;
     uint256 lastUpdated;
   }
 
   ShareContract public total;
   mapping (address => ShareContract) public shareHolders;
 
-  constructor(address _zcz) ERC900(ERC20(_zcz)) public {}
+  constructor(address _zcz) ERC900(ERC20(_zcz)) DestructibleZCZ(IZtickyCoinZ(_zcz)) public {}
 
-  modifier emergencyUnstake(address _recipient) {
-    require(ERC900.ERC20tokenContract.transfer(_recipient, ERC900.totalStaked()), "Transfer of staked locked tokens is required!");
-    _;
-  }
-
-  function calculateCurrentSharesFromPreviousState(uint256 _previousShare, uint256 _previousStake, uint256 _updatedAt)
+  function calculateCurrentStakedValueFromPreviousState(uint256 _previousStakedValue, uint256 _previousStakeAmount, uint256 _updatedAt)
   internal
   view
-  returns (uint256 _outstandingShares)
+  returns (uint256 _stakedValue)
   {
     uint256 _delta = block.number.sub(_updatedAt);
-    _outstandingShares = _previousShare.add(_delta.mul(_previousStake));
+    _stakedValue = _previousStakedValue.add(_delta.mul(_previousStakeAmount));
   }
 
-  function calculateCurrentSharesFromHistory(uint256[] memory blockNumbers, uint256[] memory amounts, uint256 _minimumLockTime)
+  function calculateCurrentStakedValueFromHistory(uint256[] memory blockNumbers, uint256[] memory amounts, uint256 _vestingTime)
   internal
   view
-  returns (uint256 _outstandingShares, uint256 _stakedTokenAtMaturity)
+  returns (uint256 _stakedValue, uint256 _maturedTokens)
   {
     for (uint256 i = 0; i < blockNumbers.length; i++) {
-      if (block.number.sub(blockNumbers[i]) < _minimumLockTime) continue;
-      _stakedTokenAtMaturity = _stakedTokenAtMaturity.add(amounts[i]);
-      _outstandingShares = _outstandingShares.add(calculateCurrentSharesFromPreviousState(0, amounts[i], blockNumbers[i]));
+      if (block.number.sub(blockNumbers[i]) < _vestingTime) continue;
+      _maturedTokens = _maturedTokens.add(amounts[i]);
+      _stakedValue = _stakedValue.add(calculateCurrentStakedValueFromPreviousState(0, amounts[i], blockNumbers[i]));
     }
   }
 
-  function getShareRatio(uint256 _outstandingShares, uint256 _totalShares)
+  function calculateShares(uint256 _stakedValue, uint256 _totalStakedValue)
   internal
-  pure
+  view
   returns (uint256)
   {
-    return _outstandingShares.mul(1 ether).div(_totalShares);
+    return _stakedValue.mul(totalShares).div(_totalStakedValue);
   }
 
-  function updateShares()
+  function updateStakedValue()
   internal
   {
-    total.outstandingShares = totalShares();
+    total.stakedValue = totalStakedValue();
     total.lastUpdated = block.number;
   }
 
-  function updateSharesOf(address _shareHolder)
+  function updateStakedValueOf(address _shareHolder)
   internal
   {
-    shareHolders[_shareHolder].outstandingShares = sharesOf(_shareHolder);
+    shareHolders[_shareHolder].stakedValue = stakedValueOf(_shareHolder);
     shareHolders[_shareHolder].lastUpdated = block.number;
   }
 
@@ -82,8 +79,8 @@ contract ZtickyStake is IZtickyStake, ERC900, Destructible, HasNoEther, Backend 
   internal
   returns (uint256 , uint256)
   {
-    updateShares();
-    updateSharesOf(_stakeFor);
+    updateStakedValue();
+    updateStakedValueOf(_stakeFor);
     return ERC900.createStake(_stakedBy, _stakeFor, _amount);
   }
 
@@ -91,8 +88,8 @@ contract ZtickyStake is IZtickyStake, ERC900, Destructible, HasNoEther, Backend 
   internal
   returns(uint256[] memory blockNumbers, uint256[] memory amounts)
   {
-    updateShares();
-    updateSharesOf(_stakeFor);
+    updateStakedValue();
+    updateStakedValueOf(_stakeFor);
     (blockNumbers, amounts) = ERC900.withdrawStake(_stakedBy, _stakeFor, _amount);
     uint256 _unstakedShare = 0;
     uint256 n = block.number;
@@ -100,8 +97,8 @@ contract ZtickyStake is IZtickyStake, ERC900, Destructible, HasNoEther, Backend 
       uint256 _delta = n.sub(blockNumbers[i]);
       _unstakedShare = _unstakedShare.add(_delta.mul(amounts[i]));
     }
-    shareHolders[_stakeFor].outstandingShares = shareHolders[_stakeFor].outstandingShares.sub(_unstakedShare);
-    total.outstandingShares = total.outstandingShares.sub(_unstakedShare);
+    shareHolders[_stakeFor].stakedValue = shareHolders[_stakeFor].stakedValue.sub(_unstakedShare);
+    total.stakedValue = total.stakedValue.sub(_unstakedShare);
   }
 
   function isZStake()
@@ -112,69 +109,69 @@ contract ZtickyStake is IZtickyStake, ERC900, Destructible, HasNoEther, Backend 
     return true;
   }
 
-  function totalShares()
+  function totalStakedValue()
   public
   view
   returns (uint256)
   {
-    return calculateCurrentSharesFromPreviousState(total.outstandingShares, ERC900.totalStaked(), total.lastUpdated);
+    return calculateCurrentStakedValueFromPreviousState(total.stakedValue, ERC900.totalStaked(), total.lastUpdated);
   }
 
-  function sharesOf(address _shareHolder)
+  function stakedValueOf(address _shareHolder)
   public
   view
   returns (uint256)
   {
     ShareContract storage s = shareHolders[_shareHolder];
-    return calculateCurrentSharesFromPreviousState(s.outstandingShares, ERC900.totalStakedFor(_shareHolder), s.lastUpdated);
+    return calculateCurrentStakedValueFromPreviousState(s.stakedValue, ERC900.totalStakedFor(_shareHolder), s.lastUpdated);
   }
 
-  function shareRatioOf(address _shareHolder)
+  function vestedSharesOf(address _shareHolder)
   public
   view
   returns (uint256)
   {
-    return getShareRatio(sharesOf(_shareHolder), totalShares());
+    return calculateShares(stakedValueOf(_shareHolder), totalStakedValue());
   }
 
-  function shareRatioAtMaturityFor(address _stakeFor)
+  function sharesOf(address _stakeFor)
   public
   view
   returns(uint256) {
-    return shareRatioAtMaturity(_stakeFor, _stakeFor);
+    return sharesByFor(_stakeFor, _stakeFor);
   }
 
-  function stakedTokenAtMaturityFor(address _stakeFor)
-  public
-  view
-  returns(uint256) {
-    return stakedTokenAtMaturity(_stakeFor, _stakeFor);
-  }
-
-  function shareRatioAtMaturity(address _stakedBy, address _stakeFor)
+  function sharesByFor(address _stakedBy, address _stakeFor)
   public
   view
   returns(uint256) {
     (uint256[] memory blockNumbers, uint256[] memory amounts) = ERC900.getActiveStakesBy(_stakedBy, _stakeFor);
-    (uint256 _outstandingShares, ) = calculateCurrentSharesFromHistory(blockNumbers, amounts, minimumLockTime);
-    return getShareRatio(_outstandingShares, totalShares());
+    (uint256 _stakedValue, ) = calculateCurrentStakedValueFromHistory(blockNumbers, amounts, vestingTime);
+    return calculateShares(_stakedValue, totalStakedValue());
   }
 
-  function stakedTokenAtMaturity(address _stakedBy, address _stakeFor)
+  function maturedTokensOf(address _stakeFor)
+  public
+  view
+  returns(uint256) {
+    return maturedTokensByFor(_stakeFor, _stakeFor);
+  }
+
+  function maturedTokensByFor(address _stakedBy, address _stakeFor)
   public
   view
   returns(uint256) {
     (uint256[] memory blockNumbers, uint256[] memory amounts) = ERC900.getActiveStakesBy(_stakedBy, _stakeFor);
-    (, uint256 _stakedTokenAtMaturity) = calculateCurrentSharesFromHistory(blockNumbers, amounts, minimumLockTime);
-    return _stakedTokenAtMaturity;
+    (, uint256 _maturedTokens) = calculateCurrentStakedValueFromHistory(blockNumbers, amounts, vestingTime);
+    return _maturedTokens;
   }
 
-  function changeMinimumLockTime(uint256 _newMinimumLockTime)
+  function changeVestingTime(uint256 _newVestingTime)
   onlyBackendAdmin
   public
   returns (bool)
   {
-    minimumLockTime = _newMinimumLockTime;
+    vestingTime = _newVestingTime;
     return true;
   }
 
@@ -206,10 +203,10 @@ contract ZtickyStake is IZtickyStake, ERC900, Destructible, HasNoEther, Backend 
   public
   returns (uint256)
   {
-    uint256 _totalShares = totalShares();
+    uint256 _totalStakedValue = totalStakedValue();
     (uint256[] memory blockNumbers, uint256[] memory amounts) =  withdrawStake(tx.origin, _stakeFor, _amount);
-    (uint256 _outstandingShares,) = calculateCurrentSharesFromHistory(blockNumbers, amounts, minimumLockTime);
-    return getShareRatio(_outstandingShares, _totalShares);
+    (uint256 _stakedValue,) = calculateCurrentStakedValueFromHistory(blockNumbers, amounts, vestingTime);
+    return calculateShares(_stakedValue, _totalStakedValue);
   }
 
   /**
@@ -235,26 +232,5 @@ contract ZtickyStake is IZtickyStake, ERC900, Destructible, HasNoEther, Backend 
   returns (uint256)
   {
     return authorizedUnstakeFor(tx.origin, _amount);
-  }
-
-  /**
-   * @dev Transfers the current balance to the owner and terminates the contract.
-   */
-  function destroy()
-  whenPaused
-  onlyBackendAdmin
-  emergencyUnstake(Ownable.owner())
-  public
-  {
-    selfdestruct(Ownable.owner());
-  }
-
-  function destroyAndSend(address payable _recipient)
-  whenPaused
-  onlyOwner
-  emergencyUnstake(_recipient)
-  public
-  {
-    return Destructible.destroyAndSend(_recipient);
   }
 }
