@@ -3,7 +3,7 @@ var ZtickyCoinZ = artifacts.require("ZtickyCoinZ");
 var ZtickyBank = artifacts.require("ZtickyBank");
 var ZtickerZ = artifacts.require("ZtickerZ");
 
-const POPULATE_TEST_DATA = true;
+const POPULATE_TEST_DATA = false;
 
 
 const a1 = web3.utils.toBN(web3.utils.toWei("1000"));
