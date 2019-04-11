@@ -22,7 +22,7 @@ contract ZtickerZ is IZtickerZ, Frontend, Destructible, Pausable {
    * This is necessary for interacting with the Backend contracts and it is also added
    * for security reasons.
    */
-  modifier isExternal() {
+  modifier onlyExternal() {
     require(tx.origin == msg.sender, "Only externally owned account can interact with the contract");
     _;
   }
@@ -34,7 +34,7 @@ contract ZtickerZ is IZtickerZ, Frontend, Destructible, Pausable {
      * @return A boolean that indicates if the operation was successful.
      */
     function mint(address _to, uint256 _amount)
-      isExternal
+      onlyExternal
       onlyOwner
       whenNotPaused
       public
@@ -50,7 +50,7 @@ contract ZtickerZ is IZtickerZ, Frontend, Destructible, Pausable {
      * @param value The amount of approval.
      */
     function stake(uint256 value) public
-      isExternal
+      onlyExternal
       whenNotPaused
       returns (bool)
     {
@@ -66,7 +66,7 @@ contract ZtickerZ is IZtickerZ, Frontend, Destructible, Pausable {
      * @param value The amount of approval.
      */
     function stakeFor(address _stakeFor, uint256 value) public
-      isExternal
+      onlyExternal
       whenNotPaused
       returns (bool)
     {
@@ -82,7 +82,7 @@ contract ZtickerZ is IZtickerZ, Frontend, Destructible, Pausable {
      * @param value The amount of approval.
      */
     function unstake(uint256 value) public
-      isExternal
+      onlyExternal
       whenNotPaused
       returns (bool)
     {
@@ -98,7 +98,7 @@ contract ZtickerZ is IZtickerZ, Frontend, Destructible, Pausable {
      * @param value The amount of approval.
      */
     function unstakeFor(address payable _stakeFor, uint256 value) public
-      isExternal
+      onlyExternal
       whenNotPaused
       returns (bool)
     {

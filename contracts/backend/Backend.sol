@@ -1,6 +1,6 @@
 pragma solidity ^0.5.2;
 
-import "../roles/Roles.sol";
+import "../roles/TimedRoles.sol";
 import "../roles/BackendAdmin.sol";
 
 /**
@@ -9,12 +9,14 @@ import "../roles/BackendAdmin.sol";
  * This role is special in that the only accounts that can add it are BackendAdmins (who can also remove it).
  */
 contract Backend is BackendAdmin {
-    using Roles for Roles.Role;
+    using TimedRoles for TimedRoles.Role;
 
     event FrontendAdded(address indexed contractAddress);
     event FrontendRemoved(address indexed contractAddress);
 
-    Roles.Role private _frontends;
+    uint256 public frontendActivationTime = 1;
+
+    TimedRoles.Role private _frontends;
 
     modifier onlyFrontend() {
         require(isFrontend(msg.sender));
@@ -26,7 +28,8 @@ contract Backend is BackendAdmin {
     }
 
     function isFrontend(address contractAddress) public view returns (bool) {
-        return _frontends.has(contractAddress);
+        uint256 _ts = _frontends.has(contractAddress);
+        return _ts!=0 && ((_ts + frontendActivationTime) < block.timestamp);
     }
 
     function addFrontend(address contractAddress) public onlyBackendAdmin {

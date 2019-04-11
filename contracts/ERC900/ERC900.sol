@@ -30,11 +30,11 @@ contract ERC900 is IERC900, Pausable {
   mapping (address => StakeContract) public stakeHolders;
 
   // Struct for personal stakes (i.e., stakes made by this address)
-  // blockNumber - block number when the stake has been created
+  // blockTimestamp - block timestamp when the stake has been created
   // amount - the amount of tokens in the stake
   // stakedFor - the address the stake was staked for
   struct Stake {
-    uint256 blockNumber;
+    uint256 blockTimestamp;
     uint256 amount;
     uint256 unstaked;
   }
@@ -171,7 +171,7 @@ contract ERC900 is IERC900, Pausable {
   function getActiveStakesFor(address _stakeFor)
     view
     public
-    returns(uint256[] memory blockNumbers, uint256[] memory amounts)
+    returns(uint256[] memory, uint256[] memory)
   {
     return getActiveStakesBy(_stakeFor, _stakeFor);
   }
@@ -186,19 +186,19 @@ contract ERC900 is IERC900, Pausable {
   function getActiveStakesBy(address _stakedBy, address _stakeFor)
     view
     public
-    returns(uint256[] memory blockNumbers, uint256[] memory amounts)
+    returns(uint256[] memory blockTimestamps, uint256[] memory amounts)
   {
     StakingStructure storage _ss = stakeHolders[_stakedBy].fors[_stakeFor];
     uint256 _size = _ss.stakes.length.sub(_ss.stakeIndex);
-    blockNumbers = new uint256[](_size);
+    blockTimestamps = new uint256[](_size);
     amounts = new uint256[](_size);
 
     for (uint256 i = 0; i < _size; i++) {
       Stake storage _s = _ss.stakes[_ss.stakeIndex.add(i)];
-      blockNumbers[i] = _s.blockNumber;
+      blockTimestamps[i] = _s.blockTimestamp;
       amounts[i] = _s.amount.sub(_s.unstaked);
     }
-    return (blockNumbers, amounts);
+    return (blockTimestamps, amounts);
   }
 
   /**
@@ -210,11 +210,11 @@ contract ERC900 is IERC900, Pausable {
   function getStakingHistoryOf(address _stakeFor)
     view
     public
-    returns(uint256[] memory blockNumbers, uint256[] memory amounts, uint256[] memory unstaked, address[] memory stakedBy)
+    returns(uint256[] memory blockTimestamps, uint256[] memory amounts, uint256[] memory unstaked, address[] memory stakedBy)
   {
     StakeContract storage _sc = stakeHolders[_stakeFor];
     uint256 _size = _sc.personalStakingHistory.length;
-    blockNumbers = new uint256[](_size);
+    blockTimestamps = new uint256[](_size);
     amounts = new uint256[](_size);
     unstaked = new uint256[](_size);
     stakedBy = new address[](_size);
@@ -222,7 +222,7 @@ contract ERC900 is IERC900, Pausable {
     for (uint256 i = 0; i < _sc.personalStakingHistory.length; i++) {
       HistoryRef memory _h = _sc.personalStakingHistory[i];
       Stake memory _s = stakeHolders[_h.stakedBy].fors[_stakeFor].stakes[_h.idx];
-      blockNumbers[i] = _s.blockNumber;
+      blockTimestamps[i] = _s.blockTimestamp;
       amounts[i] = _s.amount;
       unstaked[i] = _s.unstaked;
       stakedBy[i] = _sc.personalStakingHistory[i].stakedBy;
@@ -242,12 +242,12 @@ contract ERC900 is IERC900, Pausable {
     returns (uint256 , uint256)
   {
     stakeHolders[_stakeFor].total = stakeHolders[_stakeFor].total.add(_amount);
-    Stake memory s = Stake(block.number, _amount, 0);
+    Stake memory s = Stake(block.timestamp, _amount, 0);
     uint256 _l = stakeHolders[_stakedBy].fors[_stakeFor].stakes.push(s);
     HistoryRef memory _h = HistoryRef(_stakedBy, _l-1);
     stakeHolders[_stakeFor].personalStakingHistory.push(_h);
     emit Staked(_stakeFor, s.amount, totalStakedFor(_stakeFor), _stakedBy);
-    return (s.blockNumber, s.amount);
+    return (s.blockTimestamp, s.amount);
   }
 
   /**
@@ -259,12 +259,12 @@ contract ERC900 is IERC900, Pausable {
   function withdrawStake(address _stakedBy, address _stakeFor, uint256 _amount)
     internal
     whenNotPaused
-    returns(uint256[] memory blockNumbers, uint256[] memory amounts)
+    returns(uint256[] memory blockTimestamps, uint256[] memory amounts)
   {
     StakingStructure storage ss = stakeHolders[_stakedBy].fors[_stakeFor];
     uint256 _totalUnstaked = 0;
     uint256 l = 0;
-    blockNumbers = new uint256[](ss.stakes.length);
+    blockTimestamps = new uint256[](ss.stakes.length);
     amounts = new uint256[](ss.stakes.length);
     while(_amount > 0 && ss.stakeIndex < ss.stakes.length) {
       Stake storage s = ss.stakes[ss.stakeIndex];
@@ -278,13 +278,13 @@ contract ERC900 is IERC900, Pausable {
       require(s.amount>=s.unstaked, "Inconsistent staking state.");
       if (s.amount == s.unstaked) ss.stakeIndex++;
       emit Unstaked(_stakeFor, _unstake, totalStakedFor(_stakeFor), _stakedBy);
-      blockNumbers[l] = s.blockNumber;
+      blockTimestamps[l] = s.blockTimestamp;
       amounts[l] = _unstake;
       l++;
     }
     // Transfer the staked tokens from this contract back to the sender
     // Notice that we are using transfer instead of transferFrom here.
     if (_totalUnstaked != 0) require(ERC20tokenContract.transfer(_stakedBy, _totalUnstaked), "Unable to withdraw stake");
-    return  (blockNumbers.subarray(0,l), amounts.subarray(0,l));
+    return  (blockTimestamps.subarray(0,l), amounts.subarray(0,l));
   }
 }

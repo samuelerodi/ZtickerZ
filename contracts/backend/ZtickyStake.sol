@@ -37,19 +37,19 @@ contract ZtickyStake is IZtickyStake, ERC900, DestructibleZCZ, HasNoEther {
   view
   returns (uint256 _stakedValue)
   {
-    uint256 _delta = block.number.sub(_updatedAt);
+    uint256 _delta = block.timestamp.sub(_updatedAt);
     _stakedValue = _previousStakedValue.add(_delta.mul(_previousStakeAmount));
   }
 
-  function calculateCurrentStakedValueFromHistory(uint256[] memory blockNumbers, uint256[] memory amounts, uint256 _vestingTime)
+  function calculateCurrentStakedValueFromHistory(uint256[] memory blockTimestamps, uint256[] memory amounts, uint256 _vestingTime)
   internal
   view
   returns (uint256 _stakedValue, uint256 _maturedTokens)
   {
-    for (uint256 i = 0; i < blockNumbers.length; i++) {
-      if (block.number.sub(blockNumbers[i]) < _vestingTime) continue;
+    for (uint256 i = 0; i < blockTimestamps.length; i++) {
+      if (block.timestamp.sub(blockTimestamps[i]) < _vestingTime) continue;
       _maturedTokens = _maturedTokens.add(amounts[i]);
-      _stakedValue = _stakedValue.add(calculateCurrentStakedValueFromPreviousState(0, amounts[i], blockNumbers[i]));
+      _stakedValue = _stakedValue.add(calculateCurrentStakedValueFromPreviousState(0, amounts[i], blockTimestamps[i]));
     }
   }
 
@@ -65,14 +65,14 @@ contract ZtickyStake is IZtickyStake, ERC900, DestructibleZCZ, HasNoEther {
   internal
   {
     total.stakedValue = totalStakedValue();
-    total.lastUpdated = block.number;
+    total.lastUpdated = block.timestamp;
   }
 
   function updateStakedValueOf(address _shareHolder)
   internal
   {
     shareHolders[_shareHolder].stakedValue = stakedValueOf(_shareHolder);
-    shareHolders[_shareHolder].lastUpdated = block.number;
+    shareHolders[_shareHolder].lastUpdated = block.timestamp;
   }
 
   function createStake(address _stakedBy, address _stakeFor, uint256 _amount)
@@ -86,15 +86,15 @@ contract ZtickyStake is IZtickyStake, ERC900, DestructibleZCZ, HasNoEther {
 
   function withdrawStake(address _stakedBy, address _stakeFor, uint256 _amount)
   internal
-  returns(uint256[] memory blockNumbers, uint256[] memory amounts)
+  returns(uint256[] memory blockTimestamps, uint256[] memory amounts)
   {
     updateStakedValue();
     updateStakedValueOf(_stakeFor);
-    (blockNumbers, amounts) = ERC900.withdrawStake(_stakedBy, _stakeFor, _amount);
+    (blockTimestamps, amounts) = ERC900.withdrawStake(_stakedBy, _stakeFor, _amount);
     uint256 _unstakedShare = 0;
-    uint256 n = block.number;
+    uint256 n = block.timestamp;
     for (uint256 i = 0; i < amounts.length; i++) {
-      uint256 _delta = n.sub(blockNumbers[i]);
+      uint256 _delta = n.sub(blockTimestamps[i]);
       _unstakedShare = _unstakedShare.add(_delta.mul(amounts[i]));
     }
     shareHolders[_stakeFor].stakedValue = shareHolders[_stakeFor].stakedValue.sub(_unstakedShare);
@@ -145,8 +145,8 @@ contract ZtickyStake is IZtickyStake, ERC900, DestructibleZCZ, HasNoEther {
   public
   view
   returns(uint256) {
-    (uint256[] memory blockNumbers, uint256[] memory amounts) = ERC900.getActiveStakesBy(_stakedBy, _stakeFor);
-    (uint256 _stakedValue, ) = calculateCurrentStakedValueFromHistory(blockNumbers, amounts, vestingTime);
+    (uint256[] memory blockTimestamps, uint256[] memory amounts) = ERC900.getActiveStakesBy(_stakedBy, _stakeFor);
+    (uint256 _stakedValue, ) = calculateCurrentStakedValueFromHistory(blockTimestamps, amounts, vestingTime);
     return calculateShares(_stakedValue, totalStakedValue());
   }
 
@@ -161,8 +161,8 @@ contract ZtickyStake is IZtickyStake, ERC900, DestructibleZCZ, HasNoEther {
   public
   view
   returns(uint256) {
-    (uint256[] memory blockNumbers, uint256[] memory amounts) = ERC900.getActiveStakesBy(_stakedBy, _stakeFor);
-    (, uint256 _maturedTokens) = calculateCurrentStakedValueFromHistory(blockNumbers, amounts, vestingTime);
+    (uint256[] memory blockTimestamps, uint256[] memory amounts) = ERC900.getActiveStakesBy(_stakedBy, _stakeFor);
+    (, uint256 _maturedTokens) = calculateCurrentStakedValueFromHistory(blockTimestamps, amounts, vestingTime);
     return _maturedTokens;
   }
 
@@ -204,8 +204,8 @@ contract ZtickyStake is IZtickyStake, ERC900, DestructibleZCZ, HasNoEther {
   returns (uint256)
   {
     uint256 _totalStakedValue = totalStakedValue();
-    (uint256[] memory blockNumbers, uint256[] memory amounts) =  withdrawStake(tx.origin, _stakeFor, _amount);
-    (uint256 _stakedValue,) = calculateCurrentStakedValueFromHistory(blockNumbers, amounts, vestingTime);
+    (uint256[] memory blockTimestamps, uint256[] memory amounts) =  withdrawStake(tx.origin, _stakeFor, _amount);
+    (uint256 _stakedValue,) = calculateCurrentStakedValueFromHistory(blockTimestamps, amounts, vestingTime);
     return calculateShares(_stakedValue, _totalStakedValue);
   }
 
