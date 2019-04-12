@@ -4,8 +4,8 @@ interface IZtickyCoinZ {
 
   //ZtickyCoinZ
   function isZCZ() external pure returns(bool);
-  function mint(address _to, uint256 _amount) external returns(bool);
-  function burn(uint256 _value) external returns(bool);
+  function mint(address to, uint256 amount) external returns(bool);
+  function burn(uint256 value) external returns(bool);
   function authorizedApprove(address spender, uint256 value) external returns (bool);
 
 

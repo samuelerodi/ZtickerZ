@@ -75,7 +75,5 @@ contract ZtickyBank is IZtickyBank, DestructibleZCZ, ReentrancyGuard {
     if (_eth>0) _account.transfer(_eth);
   }
 
-  function() external payable {
-    emit Deposit(msg.sender, msg.value);
-  }
+  function() external payable {}
 }

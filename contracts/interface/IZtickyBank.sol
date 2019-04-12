@@ -38,7 +38,6 @@ interface IZtickyBank {
   function destroyAndSend(address payable _recipient) external;
 
 
-  event Deposit(address indexed by, uint256 amount);
   event Withdraw(address indexed by, uint256 eth, uint256 zcz);
   event Paused(address account);
   event Unpaused(address account);
