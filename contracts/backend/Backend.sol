@@ -14,7 +14,7 @@ contract Backend is BackendAdmin {
     event FrontendAdded(address indexed contractAddress);
     event FrontendRemoved(address indexed contractAddress);
 
-    uint256 public frontendActivationTime = 5;
+    uint256 public frontendActivationTime = 172800;
 
     TimedRoles.Role private _frontends;
 
