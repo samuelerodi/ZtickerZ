@@ -1,9 +1,9 @@
 pragma solidity ^0.5.2;
 
-import "./Roles.sol";
-import "../utils/Ownable.sol";
+import "../interface/IAdmin.sol";
+import "../roles/Roles.sol";
 
-contract PauserRole is Ownable {
+contract PauserRole is IAdmin {
     using Roles for Roles.Role;
 
     event PauserAdded(address indexed account);
@@ -24,8 +24,12 @@ contract PauserRole is Ownable {
         return _pausers.has(account);
     }
 
-    function addPauser(address account) public onlyOwner {
+    function addPauser(address account) public onlyAdmin {
         _addPauser(account);
+    }
+
+    function removePauser(address account) public onlyAdmin {
+        _removePauser(account);
     }
 
     function renouncePauser() public {

@@ -18,6 +18,7 @@ interface IZtickyBank {
   //PauserRole
   function isPauser(address account) external view returns (bool);
   function addPauser(address account) external;
+  function removePauser(address account) external;
   function renouncePauser() external;
   //Ownable
   function owner() external view returns (address payable);

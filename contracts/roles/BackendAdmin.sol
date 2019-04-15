@@ -24,6 +24,10 @@ contract BackendAdmin is Ownable {
         _;
     }
 
+    function isAdmin(address account) public view returns (bool) {
+        return isBackendAdmin(account);
+    }
+
     function isBackendAdmin(address account) public view returns (bool) {
         return _backendAdmins.has(account);
     }

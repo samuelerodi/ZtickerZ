@@ -2,10 +2,11 @@ pragma solidity ^0.5.2;
 
 import '../interface/IZtickyBank.sol';
 
-import '../interface/IZtickyCoinZ.sol';
+import "../backend/Backend.sol";
 import '../ERC20/ERC20.sol';
-import '../utils/DestructibleZCZ.sol';
 import "../utils/SafeMath.sol";
+import '../utils/HasZCZ.sol';
+import '../utils/DestructibleZCZ.sol';
 import "../utils/ReentrancyGuard.sol";
 
 
@@ -16,15 +17,14 @@ import "../utils/ReentrancyGuard.sol";
  * by ZtickerZ stakeholders. It is a backend contract since it has the only purpose of storing
  * value while the logic is implemented in the Frontend contract.
  */
-contract ZtickyBank is IZtickyBank, DestructibleZCZ, ReentrancyGuard {
+contract ZtickyBank is IZtickyBank, HasZCZ, DestructibleZCZ, ReentrancyGuard, Backend {
 
   using SafeMath for uint256;
 
-  IZtickyCoinZ public zcz;
   uint256 public totalShares = 1 ether;
 
-  constructor(address _zcz) DestructibleZCZ(IZtickyCoinZ(_zcz)) public {
-    zcz = IZtickyCoinZ(_zcz);
+  constructor(address _zcz) public {
+    HasZCZ._setZCZ(_zcz);
   }
 
   function isZBank()
@@ -41,7 +41,7 @@ contract ZtickyBank is IZtickyBank, DestructibleZCZ, ReentrancyGuard {
   returns (uint256 _eth, uint256 _zcz)
   {
     _eth = address(this).balance;
-    _zcz = zcz.balanceOf(address(this));
+    _zcz = this.ZCZ().balanceOf(address(this));
   }
 
   function outstandingDividendsPerShare()
@@ -71,7 +71,7 @@ contract ZtickyBank is IZtickyBank, DestructibleZCZ, ReentrancyGuard {
   {
     (uint256 _eth, uint256 _zcz) = outstandingDividendsFor(_shares);
     emit Withdraw(_account, _eth, _zcz);
-    if (_zcz>0) require(zcz.transfer(_account, _zcz));
+    if (_zcz>0) require(this.ZCZ().transfer(_account, _zcz));
     if (_eth>0) _account.transfer(_eth);
   }
 

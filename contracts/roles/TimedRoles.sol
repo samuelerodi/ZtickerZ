@@ -2,8 +2,8 @@ pragma solidity ^0.5.2;
 
 import "../utils/Counters.sol";
 /**
- * @title Roles
- * @dev Library for managing addresses assigned to a Role.
+ * @title TimedRoles
+ * @dev Library for managing addresses assigned to a Role which has a time constraint.
  */
 library TimedRoles {
     using Counters for Counters.Counter;
@@ -13,7 +13,7 @@ library TimedRoles {
     }
 
     /**
-     * @dev give an account access to this role
+     * @dev give an account access to this role by setting current timestamp
      */
     function add(Role storage role, address account) internal {
         require(account != address(0));
@@ -35,7 +35,7 @@ library TimedRoles {
     }
 
     /**
-     * @dev check if an account has this role
+     * @dev check if an account has this role and return the timestamp when it was added
      * @return bool
      */
     function has(Role storage role, address account) internal view returns (uint256) {

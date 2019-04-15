@@ -2,9 +2,9 @@ pragma solidity ^0.5.2;
 
 import '../interface/IZtickyStake.sol';
 
-import '../interface/IZtickyCoinZ.sol';
 import '../backend/Backend.sol';
 import '../utils/HasNoEther.sol';
+import '../utils/HasZCZ.sol';
 import '../utils/DestructibleZCZ.sol';
 import "../utils/SafeMath.sol";
 import '../ERC900/ERC900.sol';
@@ -15,7 +15,7 @@ import '../ERC20/ERC20.sol';
  * @dev The ZtickyStake contract is a backend ERC900 contract used as storage for staking features.
  * It doesn't supports history and implements an interface callable exclusively from the logic contract
  */
-contract ZtickyStake is IZtickyStake, ERC900, DestructibleZCZ, HasNoEther {
+contract ZtickyStake is IZtickyStake, HasZCZ, ERC900, DestructibleZCZ, HasNoEther, Backend {
 
   using SafeMath for uint256;
 
@@ -30,7 +30,9 @@ contract ZtickyStake is IZtickyStake, ERC900, DestructibleZCZ, HasNoEther {
   ShareContract public total;
   mapping (address => ShareContract) public shareHolders;
 
-  constructor(address _zcz) ERC900(ERC20(_zcz)) DestructibleZCZ(IZtickyCoinZ(_zcz)) public {}
+  constructor(address _zcz) ERC900(ERC20(_zcz))  public {
+    HasZCZ._setZCZ(_zcz);
+  }
 
   function calculateCurrentStakedValueFromPreviousState(uint256 _previousStakedValue, uint256 _previousStakeAmount, uint256 _updatedAt)
   internal

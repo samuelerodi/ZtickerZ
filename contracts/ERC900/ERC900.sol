@@ -88,7 +88,7 @@ contract ERC900 is IERC900, Pausable {
 
   /**
    * @notice Stakes a certain amount of tokens, this MUST transfer the given amount from the user
-   * @notice MUST trigger Staked event
+   * @dev MUST trigger Staked event
    * @param _amount uint256 the amount of tokens to stake
    */
   function stake(uint256 _amount) public {
@@ -97,7 +97,7 @@ contract ERC900 is IERC900, Pausable {
 
   /**
    * @notice Stakes a certain amount of tokens, this MUST transfer the given amount from the caller
-   * @notice MUST trigger Staked event
+   * @dev MUST trigger Staked event
    * @param _stakeFor address the address the tokens are staked for
    * @param _amount uint256 the amount of tokens to stake
    */
@@ -107,7 +107,7 @@ contract ERC900 is IERC900, Pausable {
 
   /**
    * @notice Unstakes a certain amount of tokens, this SHOULD return the given amount of tokens to the user, if unstaking is currently not possible the function MUST revert
-   * @notice MUST trigger Unstaked event
+   * @dev MUST trigger Unstaked event
    * @dev Users can only unstake starting from their oldest active stake. Upon releasing that stake, the tokens will be
    *  transferred back to their account, and their stakeIndex will increment to the next active stake.
    * @param _amount uint256 the amount of tokens to unstake
@@ -118,7 +118,7 @@ contract ERC900 is IERC900, Pausable {
 
   /**
    * @notice Unstakes a certain amount of tokens for a given user, this SHOULD return the given amount of tokens to the owner
-   * @notice MUST trigger Unstaked event
+   * @dev MUST trigger Unstaked event
    * @dev Users can only unstake starting from the oldest active stake. Upon releasing that stake, the tokens will be
    *  transferred back to their owner, and their stakeIndex will increment to the next active stake.
    * @param _stakeFor address the user the tokens are staked for
