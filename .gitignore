@@ -39,7 +39,7 @@ yarn-error.log*
 # truffle build directory
 build
 build_webpack
-
+dist
 # Private blockchain data
 .data
 
