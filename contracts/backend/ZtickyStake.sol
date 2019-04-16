@@ -12,6 +12,7 @@ import '../ERC20/ERC20.sol';
 
 /**
  * @title ZtickyStake
+ * @author Samuele Rodi (a.k.a. Sam Fisherman)
  * @dev The ZtickyStake contract is a backend ERC900 contract used as storage for staking features.
  * It doesn't supports history and implements an interface callable exclusively from the logic contract
  */

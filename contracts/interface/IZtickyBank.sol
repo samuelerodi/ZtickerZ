@@ -7,7 +7,7 @@ interface IZtickyBank {
   function totalBalance() external view returns (uint256, uint256);
   function outstandingDividendsPerShare() external view returns (uint256, uint256);
   function outstandingDividendsFor(uint256 shares) external view returns (uint256, uint256);
-  function payout(address payable to, uint256 shares) external returns (bool);
+  function payout(address payable to, uint256 shares, bool payETH, bool payZCZ) external returns (bool);
   function () external payable;
 
 

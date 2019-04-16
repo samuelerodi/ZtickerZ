@@ -2,7 +2,7 @@ pragma solidity ^0.5.2;
 
 
 /**
- * @title ERC900 Simple Staking Interface
+ * @title ERC900 Simple Staking Interface ZtickerZ implementation
  * @dev See https://github.com/ethereum/EIPs/blob/master/EIPS/eip-900.md
  */
 interface IERC900 {

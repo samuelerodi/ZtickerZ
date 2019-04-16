@@ -1,13 +1,16 @@
 pragma solidity ^0.5.2;
 
+import "../interface/IAdmin.sol";
 import "../roles/Roles.sol";
 import "../utils/Ownable.sol";
 
 /**
  * @title BackendAdmin
- * @dev BackendAdmins are responsible for assigning and removing frontend contracts.
+ * @dev BackendAdmins are responsible for managing backend contracts, and among other things, assign frontend contracts
+ * i.e. contracts that implement the logic.
+ * BackendAdmins can only be added or removed by the owner of the contract, but they might eventually renounce to the title indipendently
  */
-contract BackendAdmin is Ownable {
+contract BackendAdmin is IAdmin, Ownable {
     using Roles for Roles.Role;
 
     event BackendAdminAdded(address indexed account);

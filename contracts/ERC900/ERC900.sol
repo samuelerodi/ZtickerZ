@@ -1,4 +1,3 @@
-/* solium-disable security/no-block-members */
 pragma solidity ^0.5.2;
 
 import "../ERC20/ERC20.sol";
@@ -11,59 +10,65 @@ import "../ERC900/IERC900.sol";
 
 
 /**
- * @title ERC900 Simple Staking Interface basic implementation
- * @dev See https://github.com/ethereum/EIPs/blob/master/EIPS/eip-900.md
+ * @title ERC900 Simple Staking Interface ZtickerZ implementation
+ * @author Samuele Rodi (a.k.a. Sam Fisherman)
+ * @dev Originally based on https://github.com/ethereum/EIPs/blob/master/EIPS/eip-900.md
+ * Adapted to meet the ZtickerZ staking requirements
  */
 contract ERC900 is IERC900, Pausable {
-  // @TODO: deploy this separately so we don't have to deploy it multiple times for each contract
+
   using SafeMath for uint256;
   using Arrays for uint256[];
 
   // Token used for staking
   ERC20 public ERC20tokenContract;
 
-  // To save on gas, rather than create a separate mapping for totalStakedFor & stakes,
-  //  both data structures are stored in a single mapping for a given addresses.
-  //
-  // It's possible to have a non-existing stakes, but have tokens in totalStakedFor
-  //  if other users are staking on behalf of a given address.
-  mapping (address => StakeContract) public stakeHolders;
-
-  // Struct for personal stakes (i.e., stakes made by this address)
+  // Struct for individual staking instance (i.e., atomic staking transaction made by an address)
   // blockTimestamp - block timestamp when the stake has been created
   // amount - the amount of tokens in the stake
-  // stakedFor - the address the stake was staked for
+  // unstaked - the amount of tokens that has been unstaked so far
   struct Stake {
     uint256 blockTimestamp;
     uint256 amount;
     uint256 unstaked;
   }
 
-  // Struct for HistoryRef stakes (i.e., stakes made for this address)
-  // stakedBy - the address owner of the stake
-  // idx - the index where the stake is stored
+  // Struct for historical reference of all the stakes made for a specific recipient (i.e., stakes made for this address)
+  // stakedBy - the address that issued the stake and owner of the tokens in the stake
+  // idx - the index of the staking instance in the mapping of recipients of the owner of the stake
   struct HistoryRef {
     address stakedBy;
     uint256 idx;
   }
 
+  // Struct to keep updated reference on the staking status and chronological order of the stakes made for a specific address
+  // stakeIndex - the index of the latest active stake (not yet fully unstaked) in the array of stakes
+  // stakes - the array of stakes made by the owner and for a specific recipient address
   struct StakingStructure {
     uint256 stakeIndex;
     Stake[] stakes;
   }
 
-  // Struct for all stake metadata at a particular address
-  // total - the number of tokens staked for this address
-  // fors - a mapping of StakedFor made by this address .
-  // stakes - array list of stakes made for this address
+  // Struct for a full staking contract of an stakeholder (owner of the stake)
+  // total - the number of tokens currently staked for the current address (as beneficiary of the stake)
+  // personalStakingHistory - reference list to full staking history (active and inactive) made for the current address.
+  // fors - mapping of recipient for which current address is the owner of a staking instance
   struct StakeContract {
     uint256 total;
     HistoryRef[] personalStakingHistory;
     mapping (address => StakingStructure) fors;
   }
 
+  // The stakeHolders mapping is a list of StakeContract created by the owner of a staking contract.
+  // A StakeContract consist of a total, amount of actively staked tokens for that address,
+  // an history reference for all the active and inactive staking made for that address and
+  // a mapping of stakes for which the address is the owner of the stake
+  // It's possible to not own any active stake, but have tokens in total
+  // if other users are staking on behalf of the given address.
+  mapping (address => StakeContract) public stakeHolders;
+
   /**
-   * @dev Constructor function
+   * @dev Constructor
    * @param _ERC20tokenContract address The address of the token contract used for staking
    */
   constructor(ERC20 _ERC20tokenContract) public {
@@ -73,7 +78,7 @@ contract ERC900 is IERC900, Pausable {
 
   /**
    * @dev Modifier that checks that this contract can transfer tokens from the
-   *  balance in the ERC20tokenContract contract for the given address.
+   * balance in the ERC20tokenContract contract for the given address.
    * @dev This modifier also transfers the tokens.
    * @param _address address to transfer tokens from
    * @param _amount uint256 the number of tokens
@@ -88,7 +93,7 @@ contract ERC900 is IERC900, Pausable {
 
   /**
    * @notice Stakes a certain amount of tokens, this MUST transfer the given amount from the user
-   * @dev MUST trigger Staked event
+   * @dev Triggers Staked event
    * @param _amount uint256 the amount of tokens to stake
    */
   function stake(uint256 _amount) public {
@@ -97,7 +102,7 @@ contract ERC900 is IERC900, Pausable {
 
   /**
    * @notice Stakes a certain amount of tokens, this MUST transfer the given amount from the caller
-   * @dev MUST trigger Staked event
+   * @dev Triggers Staked event
    * @param _stakeFor address the address the tokens are staked for
    * @param _amount uint256 the amount of tokens to stake
    */
@@ -106,10 +111,11 @@ contract ERC900 is IERC900, Pausable {
   }
 
   /**
-   * @notice Unstakes a certain amount of tokens, this SHOULD return the given amount of tokens to the user, if unstaking is currently not possible the function MUST revert
-   * @dev MUST trigger Unstaked event
+   * @notice Unstakes a certain amount of tokens, this return the given amount of tokens
+   * (or the max number of staked tokens for that address) to the owner of the stake,
+   * @dev Triggers Unstaked event
    * @dev Users can only unstake starting from their oldest active stake. Upon releasing that stake, the tokens will be
-   *  transferred back to their account, and their stakeIndex will increment to the next active stake.
+   * transferred back to their account, and their stakeIndex will increment to the next active stake.
    * @param _amount uint256 the amount of tokens to unstake
    */
   function unstake(uint256 _amount) public {
@@ -117,10 +123,11 @@ contract ERC900 is IERC900, Pausable {
   }
 
   /**
-   * @notice Unstakes a certain amount of tokens for a given user, this SHOULD return the given amount of tokens to the owner
-   * @dev MUST trigger Unstaked event
+   * @notice Unstakes a certain amount of tokens for a given user, this return the given amount of tokens
+   * (or the max number of staked tokens for that particular address) to the owner of the stakes.
+   * @dev Triggers Unstaked event
    * @dev Users can only unstake starting from the oldest active stake. Upon releasing that stake, the tokens will be
-   *  transferred back to their owner, and their stakeIndex will increment to the next active stake.
+   * transferred back to their owner, and their stakeIndex will increment to the next active stake.
    * @param _stakeFor address the user the tokens are staked for
    * @param _amount uint256 the amount of tokens to unstake
    */
@@ -165,8 +172,7 @@ contract ERC900 is IERC900, Pausable {
   /**
    * @dev Helper function to get specific properties of active stakes created by an address for the same address
    * @param _stakeFor address The address for which it is being staked
-   * @return (uint256[], uint256[])
-   *  timestamps array, amounts array
+   * @return (uint256[], uint256[]) timestamps array, amounts array
    */
   function getActiveStakesFor(address _stakeFor)
     view
@@ -180,8 +186,7 @@ contract ERC900 is IERC900, Pausable {
    * @dev Helper function to get specific properties of active stakes created by an address for another address
    * @param _stakedBy address The address that initiated the stake
    * @param _stakeFor address The address for which it is being staked
-   * @return (uint256[], uint256[])
-   *  timestamps array, amounts array
+   * @return (uint256[], uint256[]) timestamps array, amounts array
    */
   function getActiveStakesBy(address _stakedBy, address _stakeFor)
     view
@@ -202,10 +207,9 @@ contract ERC900 is IERC900, Pausable {
   }
 
   /**
-   * @dev Helper function to get specific properties of all of the personal stakes created by an address
+   * @dev Helper function to get the full history of staking instances created for this address
    * @param _stakeFor address The address to query
-   * @return (uint256[], uint256[], uint256[], address[])
-   *  timestamps array, amounts array, unstaked array, stakedFor array
+   * @return (uint256[], uint256[], uint256[], address[]) blockTimestamps array, amounts array, unstaked array, stakedBy array
    */
   function getStakingHistoryOf(address _stakeFor)
     view
@@ -230,9 +234,9 @@ contract ERC900 is IERC900, Pausable {
   }
 
   /**
-   * @dev Helper function to create stakes for a given address
-   * @param _stakedBy address The sender requesting the stake
-   * @param _stakeFor address The address the stake is being created for
+   * @dev Helper function to create a staking instance for a given address
+   * @param _stakedBy address The owner of the stake
+   * @param _stakeFor address The address beneficiary of the stake
    * @param _amount uint256 The number of tokens being staked
    */
   function createStake(address _stakedBy, address _stakeFor, uint256 _amount)
@@ -251,10 +255,11 @@ contract ERC900 is IERC900, Pausable {
   }
 
   /**
-   * @dev Helper function to withdraw stakes back to the original _stakedBy
-   * @param _stakedBy address The sender that created the stake
-   * @param _stakeFor address The address for which tokens are being unstaken
-   * @param _amount uint256 The amount to withdraw. Any exceeding amount will be mapped to the maximum available stake amount.
+   * @dev Helper function to close a staking instance or reduce the staked amount and withdraw tokens staked by the owner of the stake
+   * @param _stakedBy address The owner of the stake
+   * @param _stakeFor address The address beneificiary of the active stake
+   * @param _amount uint256 The amount to withdraw. Any exceeding amount will be mapped to the maximum available active staked amount.
+   * @dev This function does NOT revert on amounts greater than the maximum
    */
   function withdrawStake(address _stakedBy, address _stakeFor, uint256 _amount)
     internal
@@ -274,7 +279,7 @@ contract ERC900 is IERC900, Pausable {
       s.unstaked = s.unstaked.add(_unstake);
       _totalUnstaked = _totalUnstaked.add(_unstake);
       stakeHolders[_stakeFor].total = stakeHolders[_stakeFor].total.sub(_unstake);
-      // Add safe check in case of contract vulnerability
+      // Add safe check in case of remote contract vulnerability
       require(s.amount>=s.unstaked, "Inconsistent staking state.");
       if (s.amount == s.unstaked) ss.stakeIndex++;
       emit Unstaked(_stakeFor, _unstake, totalStakedFor(_stakeFor), _stakedBy);

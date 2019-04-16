@@ -63,6 +63,7 @@ contract ZtickyCoinZ is IZtickyCoinZ, ERC20Pausable, ERC20Detailed("ZtickyCoinZ"
   /**
    * @notice Function to burn a specific amount of tokens restricted to frontend contracts.
    * @param _value The amount of token to be burned.
+   * @return A boolean that indicates if the operation was successful.
    */
   function burn(uint256 _value) public
     onlyFrontend
@@ -85,6 +86,7 @@ contract ZtickyCoinZ is IZtickyCoinZ, ERC20Pausable, ERC20Detailed("ZtickyCoinZ"
    * within a single transaction.
    * @param spender The address of the approved spender.
    * @param value The amount of approval.
+   * @return A boolean that indicates if the operation was successful.
    */
   function authorizedApprove(address spender, uint256 value) public
     onlyFrontend
