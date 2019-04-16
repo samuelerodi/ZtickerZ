@@ -14,6 +14,7 @@ import "../ERC900/IERC900.sol";
  * @author Samuele Rodi (a.k.a. Sam Fisherman)
  * @dev Originally based on https://github.com/ethereum/EIPs/blob/master/EIPS/eip-900.md
  * Adapted to meet the ZtickerZ staking requirements
+ * It doesn't supports history and implements an interface callable exclusively from the logic contract
  */
 contract ERC900 is IERC900, Pausable {
 
