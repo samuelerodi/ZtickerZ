@@ -6,25 +6,56 @@
 ### Rinkeby
 
 ___Backend___
-0. ZtickyCoinZ: 0x72a2850cc240Bb546fAAd165EF9993259ad91262    
+0. ZtickyCoinZ: 0x72a2850cc240Bb546fAAd165EF9993259ad91262
+        Compiler: solc v0.5.7+
+        Optimzer: Yes
+        Runs: 500
+        Arguments: string "https://ztickerz.io"
+        ABI-encoded arguments: 0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000001368747470733a2f2f7a7469636b65727a2e696f00000000000000000000000000
+
 1. ZtickyStake: 0xbd8d086640D1e95047eFCDdac4675Cc46886A0b9
+        Compiler: solc v0.5.7+
+        Optimzer: Yes
+        Runs: 500
+        Arguments: address 0x72a2850cc240Bb546fAAd165EF9993259ad91262
+        ABI-encoded arguments:
+        00000000000000000000000072a2850cc240bb546faad165ef9993259ad91262
+
 2. ZtickyBank:  0x5615c1530150FCCa4c1C17CB752eEe962040A4CB
+        Compiler: solc v0.5.7+
+        Optimzer: Yes
+        Runs: 500
+        Arguments: address 0x72a2850cc240Bb546fAAd165EF9993259ad91262
+        ABI-encoded arguments:
+        00000000000000000000000072a2850cc240bb546faad165ef9993259ad91262
 
 ___Frontend___
 0. ZtickerZ v0.1: 0x94A5731692e45be1cbbfDE0CB36f26B3d9a04dcD
+        Compiler: solc v0.5.7+
+        Optimzer: Yes
+        Runs: 500
+
+
+
 
 
 
 ## ZTICKERZ PROTOTYPE (OLD)
+Interact with this contract on Ethereum!
 
-### Rinkeby:
+URL:  http://ztickerz.samuelerodi.info
+
+IPFS: https://ipfs.io/ipfs/QmXKa7czE4VaXRWzBHYwyLW1Lhdd2Y8fZesq7W1zddcrZF/
+  or: http://ztickerzonipfs.samuelerodi.info
+
+Rinkeby:
 0.  Migrations:     0x0c2af2fe2228d5bd7f92f30305ca52983e48017b
 1.  ZtickyZtorage:  0x36e4c18184e85cf52ca18067c6321683d593d090
 2.  ZtickyCoinZ:    0xabed85c03fe5fb13e05959f333864071c5175050
 3.  ZtickerZ:       0xba8d6172da1a00cf052194cb22fa465a0fcdd942
 
 
-### IPFS:
+Deployed files on IPFS:
 added QmYV91FZDPT9oE8Q4ZJ4zjSdcVwbGhtiDbVU1QAT5zGbZX ztickerz/asset-manifest.json
 added QmcFc6EPhavNSfdjG8byaxxV6KtHZvnDwYXLHvyJQPp3uN ztickerz/favicon.ico
 added QmcLy992N1jYZK8pMStsKTSEDuQAZfMo3ENBiFXxjpSHoF ztickerz/index.html
