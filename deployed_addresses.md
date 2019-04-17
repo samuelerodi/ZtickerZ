@@ -1,5 +1,24 @@
-Addresses:
+# CONTRACT ADDRESSES
 
+
+## ZTICKERZ
+
+### Rinkeby
+
+___Backend___
+0. ZtickyCoinZ:
+1. ZtickyStake:
+2. ZtickyBank:
+
+___Frontend___
+0. ZtickerZ v0.1:
+
+
+
+
+
+
+## ZTICKERZ PROTOTYPE (OLD)
 Interact with this contract on Ethereum!
 
 URL:  http://ztickerz.samuelerodi.info

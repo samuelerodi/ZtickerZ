@@ -30,7 +30,7 @@ contract Backend is BackendAdmin {
      * This is a measure that mitigates the authority of the Backend Admin as a single
      * central point of failure.
      **/
-    uint256 public frontendActivationTime = 172800;
+    uint256 public frontendActivationTime = 3;
 
     /**
      * @notice Make sure the caller is an allowed frontend.
