@@ -23,25 +23,25 @@ module.exports = {
       gas: 4500000,
     },
     ropsten: {
-        provider: new HDWalletProvider(secret.mnemonic.ropsten, "https://ropsten.infura.io/" + secret.infuraApiKey),
+        provider: new HDWalletProvider(secret.mnemonic.ropsten, "https://ropsten.infura.io/v3/" + secret.infuraApiKey),
         network_id: 3,
         gasPrice: 3000000000,
         gas: 4500000
     },
     kovan: {
-        provider: new HDWalletProvider(secret.mnemonic.kovan, "https://kovan.infura.io/" + secret.infuraApiKey),
+        provider: new HDWalletProvider(secret.mnemonic.kovan, "https://kovan.infura.io/v3/" + secret.infuraApiKey),
         network_id: 42,
         gasPrice: 3000000000,
         gas: 4500000
     },
     rinkeby: {
-        provider: new HDWalletProvider(secret.mnemonic.rinkeby, "https://rinkeby.infura.io/" + secret.infuraApiKey),
+        provider: new HDWalletProvider(secret.mnemonic.rinkeby, "https://rinkeby.infura.io/v3/" + secret.infuraApiKey),
         network_id: 4,
         gasPrice: 3000000000,
         gas: 4500000
     },
     mainnet: {
-        provider: new HDWalletProvider(secret.mnemonic.mainnet, "https://mainnet.infura.io/" + secret.infuraApiKey),
+        provider: new HDWalletProvider(secret.mnemonic.mainnet, "https://mainnet.infura.io/v3/" + secret.infuraApiKey),
         network_id: 1,
         gasPrice: 2000000000,
         gas: 6000000

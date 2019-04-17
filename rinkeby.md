@@ -1,15 +1,4 @@
-usual
-slide
-fame
-eyebrow
-win
-toe
-sadness
-almost
-rule
-drill
-hidden
-magnet
+usual slide fame eyebrow win toe sadness almost rule drill hidden magnet
 
 Accounts:
 0. Owner:         0x9b39b00989854A89B4f70Df0D2a432C68d9c1306

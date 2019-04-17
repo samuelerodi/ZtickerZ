@@ -11,13 +11,14 @@ const a2 = web3.utils.toBN(web3.utils.toWei("5"));
 const a3 = web3.utils.toBN(web3.utils.toWei("1"));
 
 module.exports = async function(deployer) {
-  var z = await ZtickerZ.deployed();
-  var zcz = await ZtickyCoinZ.deployed();
-  var zstake = await ZtickyStake.deployed();
-  var zbank = await ZtickyBank.deployed();
-  var accounts = await web3.eth.getAccounts();
 
   if (deployer.network_id == 100 && POPULATE_TEST_DATA) {
+    var z = await ZtickerZ.deployed();
+    var zcz = await ZtickyCoinZ.deployed();
+    var zstake = await ZtickyStake.deployed();
+    var zbank = await ZtickyBank.deployed();
+    var accounts = await web3.eth.getAccounts();
+
     console.log("Populating with test data!");
     //LOCAL NETWORK RUN
     await zcz.addBackendAdmin(accounts[1], {from: accounts[0]});
