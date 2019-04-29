@@ -10,11 +10,18 @@ import './utils/DestructibleZCZ.sol';
 /**
  * @title ZtickerZ v0.1
  * @author Samuele Rodi (a.k.a. Sam Fisherman)
- * @notice This ZtickerZ contract is the first release of the ZtickerZ logic contract that implements the basic functionalities
- * used for ZCZ distribution and staking features. This frontend contract will be dismissed as soon as the full release
- * of ZtickerZ will be available.
+ * @notice This ZtickerZ contract is the first release of the ZtickerZ logic contract that implements the functionalities
+ * used for inital ZCZ mining through proof-of-stake. This frontend contract is also used as an interface to the staking features
+ * of ZtickerZ.
  */
 contract ZtickerZ is IZtickerZ, DestructibleZCZ, Frontend {
+
+  bool preminingFinished;
+  uint256 public currentPayoutIdx;
+  uint256 public nextPayoutTimestamp;
+  uint256 public payoutsInterval = 2629800;
+  uint256 public preminedZCZSupply = 21000000 * 1 ether;
+  uint256[] payoutInterestRates = [6,6,6,6,6,5,5,5,5,5,5,4,4,4,3,3,3,2,2,2,1,1,1];
 
   /**
    * @notice This checks that the caller is strictly an externally owned account.
@@ -28,24 +35,76 @@ contract ZtickerZ is IZtickerZ, DestructibleZCZ, Frontend {
     _;
   }
 
+  /**
+   * @notice Returns the expected amount of redeemable dividends for the stakeholder.
+   * @param _stakeFor The address of the stakeholder.
+   * @return An array with the ETH dividend and ZCZ dividend.
+   */
+  function expectedDividends(address _stakeFor) public
+    view
+    returns (uint256, uint256)
+  {
+    uint256 _shares = Frontend.ZStake().sharesOf(_stakeFor);
+    return Frontend.ZBank().outstandingDividendsFor(_shares);
+  }
+
+  /**
+   * @notice Returns the expected amount of redeemable dividends for the stakeholder.
+   * @param _stakedBy The address owner of the stake.
+   * @param _stakeFor The address for which the stake is being held.
+   * @return An array with the ETH dividend and ZCZ dividend.
+   */
+  function expectedDividendsFor(address _stakedBy, address _stakeFor) public
+    view
+    returns (uint256, uint256)
+  {
+    uint256 _shares = Frontend.ZStake().sharesOfFor(_stakedBy, _stakeFor);
+    return Frontend.ZBank().outstandingDividendsFor(_shares);
+  }
+
     /**
      * @notice Function to mint tokens, restricted to frontend admins only.
-     * This function currently represents a single point of failure as it rely on a single account
-     * capable of modifying the ZCZ supply (minting).
-     * @dev This function will be removed in a future release of the ZtickerZ logic contract.
+     * This function can be triggered once only and it is used for the initial premined supply of ZCZ tokens specified inside this contract.
      * @param _to The address that will receive the minted tokens.
-     * @param _amount The amount of tokens to mint.
      * @return A boolean that indicates if the operation was successful.
      */
-    function mint(address _to, uint256 _amount) public
+    function mint(address _to) public
       onlyExternal
       onlyFrontendAdmin
       whenNotPaused
       returns (bool)
     {
-      Frontend.ZCZ().mint(_to, _amount);
+      require(!preminingFinished, "Premining has already occured");
+      preminingFinished = true;
+      nextPayoutTimestamp = block.timestamp + payoutsInterval;
+      Frontend.ZCZ().mint(_to, preminedZCZSupply);
       return true;
     }
+
+    /**
+     * @notice Function to pay token dividends issued through proof-of-stake.
+     * This function can be invoked by anyone but triggers change only when the next payout time has reached.
+     * It modifies the ZCZ premined supply through the proof-of-stake using a predetermined interest rate pattern.
+     * @return A boolean that indicates if the operation was successful.
+     */
+    function payDividends() public
+      onlyExternal
+      whenNotPaused
+      returns (bool)
+    {
+      require(preminingFinished, "Should have already minted coins");
+      require(currentPayoutIdx < payoutInterestRates.length, "Planned payouts have ended");
+      require(nextPayoutTimestamp!=0, "It needs a timestamp for payouts");
+      require(block.timestamp > nextPayoutTimestamp, "Dividends payout time has not come yet");
+      uint256 _currentInterest = 100 + payoutInterestRates[currentPayoutIdx];
+      uint256 _amount = (preminedZCZSupply * _currentInterest) / 100;
+      currentPayoutIdx++;
+      preminedZCZSupply += _amount;
+      nextPayoutTimestamp += payoutsInterval;
+      Frontend.ZCZ().mint(address(Frontend.ZBank()), _amount);
+      return true;
+    }
+
 
     /**
     * @notice This function allows the user to stake his own tokens for a different account.
@@ -114,19 +173,24 @@ contract ZtickerZ is IZtickerZ, DestructibleZCZ, Frontend {
     function claimDividendsAndRestakeFor(address payable _stakeFor) public
       returns (bool)
     {
-      uint256 _maturedTokens = Frontend.ZStake().maturedTokensByFor(msg.sender, _stakeFor);
+      uint256 _maturedTokens = Frontend.ZStake().maturedTokensOfFor(msg.sender, _stakeFor);
       unstakeFor(_stakeFor, _maturedTokens);
       stakeFor(_stakeFor, _maturedTokens);
       return true;
     }
 
     /**
-    * @notice This function is useful for any stakeholder to claim and receive all the outstanding dividends
-    * and restake all of its tokens without having to perform two different operations.
-    */
+     * @notice This function is useful for any stakeholder to claim and receive all the outstanding dividends
+     * and restake all of its tokens without having to perform two different operations.
+     */
     function claimDividendsAndRestake() public
     returns (bool)
     {
       return claimDividendsAndRestakeFor(msg.sender);
     }
+
+    /**
+     * @notice This contract accepts ether payments
+     */
+    function() external payable {}
 }

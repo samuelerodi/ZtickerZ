@@ -101,7 +101,7 @@ contract('ZtickyBank', function(accounts) {
     assert.equal(st1.toString(), "0", "It should have staked correctly 1");
     assert.equal(st2.toString(), _eth.toString(), "It should have staked correctly 2");
     await sleep(10000);
-    var s1 = await zstake.sharesByFor(accounts[5],accounts[6]);
+    var s1 = await zstake.sharesOfFor(accounts[5],accounts[6]);
     var d1 = await zbank.outstandingDividendsFor(s1);
     var b1 = await zcz.balanceOf(accounts[6]);
     var b2 = await zcz.balanceOf(accounts[5]);

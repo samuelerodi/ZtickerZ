@@ -10,7 +10,7 @@ import '../interface/IHasZCZ.sol';
  */
 contract HasZCZ is IHasZCZ {
 
-    IZtickyCoinZ private _ZCZ = IZtickyCoinZ(address(0));
+    IZtickyCoinZ private _ZCZ;
 
     /**
      * @notice Internally set a contract address and check if the address is a correct ZCZ contract

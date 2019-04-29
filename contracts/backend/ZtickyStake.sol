@@ -235,7 +235,7 @@ contract ZtickyStake is IZtickyStake, HasZCZ, ERC900, DestructibleZCZ, HasNoEthe
    * @param _stakeFor The beneficiary of the stake
    * @return uint256 The outstanding shares ratio.
    */
-  function sharesByFor(address _stakedBy, address _stakeFor)
+  function sharesOfFor(address _stakedBy, address _stakeFor)
     public
     view
     returns(uint256)
@@ -256,7 +256,7 @@ contract ZtickyStake is IZtickyStake, HasZCZ, ERC900, DestructibleZCZ, HasNoEthe
     view
     returns(uint256)
   {
-    return sharesByFor(_stakeFor, _stakeFor);
+    return sharesOfFor(_stakeFor, _stakeFor);
   }
 
   /**
@@ -266,7 +266,7 @@ contract ZtickyStake is IZtickyStake, HasZCZ, ERC900, DestructibleZCZ, HasNoEthe
    * @param _stakeFor The beneficiary of the stake
    * @return uint256 The amount of matured staked tokens.
    */
-  function maturedTokensByFor(address _stakedBy, address _stakeFor)
+  function maturedTokensOfFor(address _stakedBy, address _stakeFor)
     public
     view
     returns(uint256)
@@ -287,7 +287,7 @@ contract ZtickyStake is IZtickyStake, HasZCZ, ERC900, DestructibleZCZ, HasNoEthe
     view
     returns(uint256)
   {
-    return maturedTokensByFor(_stakeFor, _stakeFor);
+    return maturedTokensOfFor(_stakeFor, _stakeFor);
   }
 
   /**

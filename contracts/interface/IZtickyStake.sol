@@ -9,10 +9,10 @@ interface IZtickyStake {
   function totalShares() external view returns (uint256);
   function stakedValueOf(address _shareHolder) external view returns (uint256);
   function sharesOf(address _shareHolder) external view returns (uint256);
-  function sharesByFor(address _stakedBy, address _stakeFor) external view returns(uint256);
+  function sharesOfFor(address _stakedBy, address _stakeFor) external view returns(uint256);
   function vestedSharesOf(address _shareHolder) external view returns (uint256);
   function maturedTokensOf(address _stakeFor) external view  returns(uint256);
-  function maturedTokensByFor(address _stakedBy, address _stakeFor) external view returns(uint256);
+  function maturedTokensOfFor(address _stakedBy, address _stakeFor) external view returns(uint256);
   function authorizedStake(uint256 _amount) external returns (bool);
   function authorizedUnstake(uint256 _amount) external returns (uint256);
   function authorizedStakeFor(address _stakeFor, uint256 _amount) external returns (bool);

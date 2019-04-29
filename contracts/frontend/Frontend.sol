@@ -16,8 +16,8 @@ import '../roles/FrontendAdmin.sol';
  */
 contract Frontend is HasZCZ, FrontendAdmin {
 
-  IZtickyStake private _ZStake = IZtickyStake(address(0));
-  IZtickyBank private _ZBank = IZtickyBank(address(0));
+  IZtickyStake private _ZStake;
+  IZtickyBank private _ZBank;
 
   /**
    * @dev Make sure the entire logic contract has been correctly configured.

@@ -10,6 +10,11 @@ const _b = web3.utils.toBN("1000");
 const _zero = web3.utils.toBN("0");
 const _eth = web3.utils.toBN(web3.utils.toWei("1"));
 
+const sleep = (milliseconds) => {
+  console.log("Waiting... " + milliseconds + " ms");
+  return new Promise(resolve => setTimeout(resolve, milliseconds))
+}
+
 var zstake, zcz, z;
 // var accounts; web3.eth.getAccounts().then(r=>accounts=r)
 
@@ -32,9 +37,15 @@ contract('ZtickyStake', function(accounts) {
 
   it("...should have a Backend Admin.", async function() {
     assert.equal(await zstake.isBackendAdmin(accounts[0]), true, "it must be a backend admin");
-    assert.equal(await zstake.isBackendAdmin(accounts[1]), false, "it must not be a backend admin");
-    await zstake.addBackendAdmin(accounts[1], {from: accounts[0]});
-    assert.equal(await zstake.isBackendAdmin(accounts[1]), true, "it must now be a backend admin");
+    assert.equal(await zstake.isBackendAdmin(accounts[1]), true, "it must be a backend admin");
+  });
+
+  it("...should configure a custom Frontend.", async function() {
+    var t = await zcz.frontendActivationTime();
+    assert.equal(await zcz.isFrontend(accounts[0]), false, "Account 0 must not be a valid frontend");
+    await zcz.addFrontend(accounts[0], {from:accounts[0]});
+    await sleep(parseInt(t.toString()) * 1100); //Wait a little more to let block formation
+    assert.equal(await zcz.isFrontend(accounts[0]), true, "Now it must be a valid frontend");
   });
 
   it("...should have a pauser.", async function() {
@@ -53,7 +64,7 @@ contract('ZtickyStake', function(accounts) {
   });
 
   it("...should mint some coins.", async function() {
-    await z.mint(accounts[0], a1, {from: accounts[0]});
+    await zcz.mint(accounts[0], a1, {from: accounts[0]});
     assert.equal((await zcz.balanceOf(accounts[0])).toNumber(), a1.toNumber(), "it must have received tokens");
   });
 
@@ -75,7 +86,7 @@ contract('ZtickyStake', function(accounts) {
   });
 
   it("...should stake some coins to a different users.", async function() {
-    await z.mint(accounts[1], a1, {from: accounts[0]});
+    await zcz.mint(accounts[1], a1, {from: accounts[0]});
     assert.equal((await zcz.balanceOf(accounts[1])).toNumber()>=a2.toNumber(), true, "it must have minted some");
     await z.stake(a2, {from: accounts[1]});
     assert.equal((await zstake.totalStakedFor(accounts[1])).toString(), a2.toString(), "it must have staked enough coins");
@@ -97,10 +108,10 @@ contract('ZtickyStake', function(accounts) {
   it("...should return correct tokens at maturity.", async function() {
     //No vestingTime set!
     var s0 = await zstake.totalStakedFor(accounts[0]);
-    var m0 = await zstake.maturedTokensByFor(accounts[0],accounts[0]);
+    var m0 = await zstake.maturedTokensOfFor(accounts[0],accounts[0]);
     assert.equal(s0.toString(), m0.toString(), "it should be the same for vestingTime=0");
     var s1 = await zstake.totalStakedFor(accounts[1]);
-    var m1 = await zstake.maturedTokensByFor(accounts[1],accounts[1]);
+    var m1 = await zstake.maturedTokensOfFor(accounts[1],accounts[1]);
     assert.equal(s1.toString(), m1.toString(), "it should be the same for vestingTime=0");
   });
 
@@ -113,14 +124,14 @@ contract('ZtickyStake', function(accounts) {
   it("...should now have 0 matured tokens.", async function() {
     //No vestingTime set!
     var s0 = await zstake.totalStakedFor(accounts[0]);
-    var m0 = await zstake.maturedTokensByFor(accounts[0],accounts[0]);
-    var r0 = await zstake.sharesByFor(accounts[0],accounts[0]);
+    var m0 = await zstake.maturedTokensOfFor(accounts[0],accounts[0]);
+    var r0 = await zstake.sharesOfFor(accounts[0],accounts[0]);
     assert.notEqual(s0.toString(), "0", "it should still have something at stake");
     assert.equal(m0.toString(), "0", "but no matured token");
     assert.equal(r0.toString(), "0", "and no matured share ratio");
     var s1 = await zstake.totalStakedFor(accounts[1]);
-    var m1 = await zstake.maturedTokensByFor(accounts[1],accounts[1]);
-    var r1 = await zstake.sharesByFor(accounts[1],accounts[1]);
+    var m1 = await zstake.maturedTokensOfFor(accounts[1],accounts[1]);
+    var r1 = await zstake.sharesOfFor(accounts[1],accounts[1]);
     assert.notEqual(s1.toString(), "0", "it should be the same for 1");
     assert.equal(m1.toString(), "0", "it should be the same for 1");
     assert.equal(r1.toString(), "0", "it should be the same for 1");
@@ -139,9 +150,9 @@ contract('ZtickyStake', function(accounts) {
   });
 
   it("...should do some more staking/unstaking with no exceptions.", async function() {
-    await z.mint(accounts[0], a1, {from: accounts[0]});
-    await z.mint(accounts[0], a1, {from: accounts[0]});
-    await z.mint(accounts[0], a1, {from: accounts[0]});
+    await zcz.mint(accounts[0], a1, {from: accounts[0]});
+    await zcz.mint(accounts[0], a1, {from: accounts[0]});
+    await zcz.mint(accounts[0], a1, {from: accounts[0]});
     await zcz.transfer(accounts[1], a1,  {from: accounts[0]});
     await zcz.transfer(accounts[1], a3,  {from: accounts[0]});
     await zcz.transfer(accounts[2], a3,  {from: accounts[0]});

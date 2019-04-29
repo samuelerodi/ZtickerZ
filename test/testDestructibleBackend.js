@@ -32,7 +32,7 @@ contract('Backend', function(accounts) {
     var t = await zcz.frontendActivationTime();
     assert.equal(await zcz.isFrontend(accounts[0]), false, "Account 0 must not be a valid frontend");
     await zcz.addFrontend(accounts[0], {from:accounts[0]});
-    assert.equal(await zcz.isFrontend(accounts[0]), false, "Should still be not be a valid frontend");
+    assert.equal(await zcz.isFrontend(accounts[0]), false, "Should still not be a valid frontend");
     await sleep(parseInt(t.toString()) * 1100); //Wait a little more to let block formation
     assert.equal(await zcz.isFrontend(accounts[0]), true, "Now it must be a valid frontend");
   });
@@ -45,12 +45,12 @@ contract('Backend', function(accounts) {
   });
 
   it("...should set a backend admin.", async function() {
-    assert.equal(await zstake.isBackendAdmin(accounts[1]), false, "It must not be a backend admin");
-    await zstake.addBackendAdmin(accounts[1], {from:accounts[0]});
-    assert.equal(await zstake.isBackendAdmin(accounts[1]), true, "It must now be a backend admin");
-    assert.equal(await zbank.isBackendAdmin(accounts[1]), false, "It must not be a backend admin");
-    await zbank.addBackendAdmin(accounts[1], {from:accounts[0]});
-    assert.equal(await zbank.isBackendAdmin(accounts[1]), true, "It must now be a backend admin");
+    assert.equal(await zstake.isBackendAdmin(accounts[2]), false, "It must not be a backend admin");
+    await zstake.addBackendAdmin(accounts[2], {from:accounts[0]});
+    assert.equal(await zstake.isBackendAdmin(accounts[2]), true, "It must now be a backend admin");
+    assert.equal(await zbank.isBackendAdmin(accounts[2]), false, "It must not be a backend admin");
+    await zbank.addBackendAdmin(accounts[2], {from:accounts[0]});
+    assert.equal(await zbank.isBackendAdmin(accounts[2]), true, "It must now be a backend admin");
   });
 
   it("...should pause the contract.", async function() {

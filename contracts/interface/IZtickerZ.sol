@@ -15,7 +15,10 @@ interface IZtickerZ {
   function ZBank() external view returns(IZtickyBank);
 
   /* ZtickerZ */
-  function mint(address to, uint256 amount) external returns (bool);
+  function expectedDividends(address _stakeFor) external view returns (uint256, uint256);
+  function expectedDividendsFor(address _stakedBy, address _stakeFor) external view returns (uint256, uint256);
+  function mint(address to) external returns (bool);
+  function payDividends() external returns (bool);
   function stake(uint256 value) external returns (bool);
   function unstake(uint256 value) external returns (bool);
   function stakeFor(address stakedFor, uint256 value) external returns (bool);
