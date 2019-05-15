@@ -6,7 +6,7 @@ import './interface/IZtickyStake.sol';
 
 import './frontend/Frontend.sol';
 import './utils/DestructibleZCZ.sol';
-
+import './utils/SafeMath.sol';
 /**
  * @title ZtickerZ v0.1
  * @author Samuele Rodi (a.k.a. Sam Fisherman)
@@ -16,12 +16,48 @@ import './utils/DestructibleZCZ.sol';
  */
 contract ZtickerZ is IZtickerZ, DestructibleZCZ, Frontend {
 
+  using SafeMath for uint256;
+
+  /* Amount of premined ZCZ  */
+  uint256 public preminedZCZ = 21000000 * 1 ether;
+  /* Check if mining has occured */
   bool preminingFinished;
-  uint256 public currentPayoutIdx;
-  uint256 public nextPayoutTimestamp;
-  uint256 public payoutsInterval = 2629800;
-  uint256 public preminedZCZSupply = 21000000 * 1 ether;
-  uint256[] payoutInterestRates = [6,6,6,6,6,5,5,5,5,5,5,4,4,4,3,3,3,2,2,2,1,1,1];
+
+
+  /* Amount of ZCZ minted through proof-of-stake */
+  uint256 public posZCZ;
+  /* Counter of current payout through proof-of-stake */
+  uint256 public currentPosPayoutIdx;
+  /* Time when next payout through proof-of-stake will occur*/
+  uint256 public nextPosPayoutTimestamp;
+  /* Interval between subsequent proof-of-stake payouts: 1 month */
+  uint256 public posPayoutInterval = 2629800;
+
+
+  /* Outstanding interest rates of proof-of-stake payouts 100k = 100% */
+  uint256[] public posInterestRates = [ 6000,  /* 1 */
+                                        6000,  /* 2 */
+                                        6000,  /* 3 */
+                                        6000,  /* 4 */
+                                        6000,  /* 5 */
+                                        5000,  /* 6 */
+                                        5000,  /* 7 */
+                                        5000,  /* 8 */
+                                        5000,  /* 9 */
+                                        5000,  /* 10 */
+                                        5000,  /* 11 */
+                                        4000,  /* 12 */
+                                        4000,  /* 13 */
+                                        4000,  /* 14 */
+                                        3000,  /* 15 */
+                                        3000,  /* 16 */
+                                        3000,  /* 17 */
+                                        2000,  /* 18 */
+                                        2000,  /* 19 */
+                                        2000,  /* 20 */
+                                        1000,  /* 21 */
+                                        1000,  /* 22 */
+                                        1000]; /* 23 */
 
   /**
    * @notice This checks that the caller is strictly an externally owned account.
@@ -74,33 +110,34 @@ contract ZtickerZ is IZtickerZ, DestructibleZCZ, Frontend {
       whenNotPaused
       returns (bool)
     {
-      require(!preminingFinished, "Premining has already occured");
+      require(!preminingFinished, "Premining is finished");
       preminingFinished = true;
-      nextPayoutTimestamp = block.timestamp + payoutsInterval;
-      Frontend.ZCZ().mint(_to, preminedZCZSupply);
+      Frontend.ZCZ().mint(_to, preminedZCZ);
       return true;
     }
 
     /**
      * @notice Function to pay token dividends issued through proof-of-stake.
-     * This function can be invoked by anyone but triggers change only when the next payout time has reached.
+     * This function is invoked by admins and triggers change only when the next payout time has reached.
      * It modifies the ZCZ premined supply through the proof-of-stake using a predetermined interest rate pattern.
      * @return A boolean that indicates if the operation was successful.
      */
     function payDividends() public
       onlyExternal
+      onlyFrontendAdmin
       whenNotPaused
       returns (bool)
     {
       require(preminingFinished, "Should have already minted coins");
-      require(currentPayoutIdx < payoutInterestRates.length, "Planned payouts have ended");
-      require(nextPayoutTimestamp!=0, "It needs a timestamp for payouts");
-      require(block.timestamp > nextPayoutTimestamp, "Dividends payout time has not come yet");
-      uint256 _currentInterest = 100 + payoutInterestRates[currentPayoutIdx];
-      uint256 _amount = (preminedZCZSupply * _currentInterest) / 100;
-      currentPayoutIdx++;
-      preminedZCZSupply += _amount;
-      nextPayoutTimestamp += payoutsInterval;
+      require(currentPosPayoutIdx < posInterestRates.length, "Planned payouts have ended");
+      require(block.timestamp > nextPosPayoutTimestamp, "Dividends payout time has not come yet");
+      if (nextPosPayoutTimestamp == 0) nextPosPayoutTimestamp = block.timestamp;
+      uint256 _currentInterest = 100000 + posInterestRates[currentPosPayoutIdx];
+      uint256 _totalZCZ = preminedZCZ.add(posZCZ);
+      uint256 _amount = _totalZCZ.mul(_currentInterest).div(100000);
+      currentPosPayoutIdx++;
+      posZCZ = posZCZ.add(_amount);
+      nextPosPayoutTimestamp += posPayoutInterval;
       Frontend.ZCZ().mint(address(Frontend.ZBank()), _amount);
       return true;
     }
