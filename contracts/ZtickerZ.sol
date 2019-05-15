@@ -31,32 +31,33 @@ contract ZtickerZ is IZtickerZ, DestructibleZCZ, Frontend {
   /* Time when next payout through proof-of-stake will occur*/
   uint256 public nextPosPayoutTimestamp;
   /* Interval between subsequent proof-of-stake payouts: 1 month */
-  uint256 public posPayoutInterval = 2629800;
+  /* uint256 public posPayoutInterval = 2629800; */
+  uint256 public posPayoutInterval = 604800;
 
 
   /* Outstanding interest rates of proof-of-stake payouts 100k = 100% */
-  uint256[] public posInterestRates = [ 6000,  /* 1 */
-                                        6000,  /* 2 */
-                                        6000,  /* 3 */
-                                        6000,  /* 4 */
-                                        6000,  /* 5 */
-                                        5000,  /* 6 */
-                                        5000,  /* 7 */
-                                        5000,  /* 8 */
-                                        5000,  /* 9 */
-                                        5000,  /* 10 */
-                                        5000,  /* 11 */
-                                        4000,  /* 12 */
-                                        4000,  /* 13 */
-                                        4000,  /* 14 */
-                                        3000,  /* 15 */
-                                        3000,  /* 16 */
-                                        3000,  /* 17 */
-                                        2000,  /* 18 */
-                                        2000,  /* 19 */
-                                        2000,  /* 20 */
-                                        1000,  /* 21 */
-                                        1000,  /* 22 */
+  uint256[] public posInterestRates = [ 5000,  /* 1 */
+                                        4800,  /* 2 */
+                                        4600,  /* 3 */
+                                        4400,  /* 4 */
+                                        4200,  /* 5 */
+                                        4000,  /* 6 */
+                                        3800,  /* 7 */
+                                        3600,  /* 8 */
+                                        3400,  /* 9 */
+                                        3200,  /* 10 */
+                                        3000,  /* 11 */
+                                        2800,  /* 12 */
+                                        2600,  /* 13 */
+                                        2400,  /* 14 */
+                                        2200,  /* 15 */
+                                        2000,  /* 16 */
+                                        1800,  /* 17 */
+                                        1650,  /* 18 */
+                                        1500,  /* 19 */
+                                        1300,  /* 20 */
+                                        1200,  /* 21 */
+                                        1100,  /* 22 */
                                         1000]; /* 23 */
 
   /**
@@ -128,11 +129,11 @@ contract ZtickerZ is IZtickerZ, DestructibleZCZ, Frontend {
       whenNotPaused
       returns (bool)
     {
-      require(preminingFinished, "Should have already minted coins");
+      require(preminingFinished, "Must mint coins first");
       require(currentPosPayoutIdx < posInterestRates.length, "Planned payouts have ended");
       require(block.timestamp > nextPosPayoutTimestamp, "Dividends payout time has not come yet");
       if (nextPosPayoutTimestamp == 0) nextPosPayoutTimestamp = block.timestamp;
-      uint256 _currentInterest = 100000 + posInterestRates[currentPosPayoutIdx];
+      uint256 _currentInterest = posInterestRates[currentPosPayoutIdx];
       uint256 _totalZCZ = preminedZCZ.add(posZCZ);
       uint256 _amount = _totalZCZ.mul(_currentInterest).div(100000);
       currentPosPayoutIdx++;

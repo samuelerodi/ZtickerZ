@@ -29,12 +29,16 @@ ___Backend___
         ABI-encoded arguments:
         00000000000000000000000072a2850cc240bb546faad165ef9993259ad91262
 
-___Frontend___
+___Frontend___        
 0. ZtickerZ v0.1: 0x94A5731692e45be1cbbfDE0CB36f26B3d9a04dcD
         Compiler: solc v0.5.7+
         Optimzer: Yes
         Runs: 500
 
+1. ZtickerZ v0.1.1: 0xF66A48Ab92A4945a27fFb4C2d8c8f05E29648D9f
+        Compiler: solc v0.5.7+
+        Optimzer: Yes
+        Runs: 500
 
 
 

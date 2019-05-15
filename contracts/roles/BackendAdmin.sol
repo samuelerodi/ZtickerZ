@@ -23,7 +23,7 @@ contract BackendAdmin is IAdmin, Ownable {
     }
 
     modifier onlyBackendAdmin() {
-        require(isBackendAdmin(msg.sender));
+        require(isBackendAdmin(msg.sender), "Not authorized. Must be a BackendAdmin.");
         _;
     }
 

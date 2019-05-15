@@ -22,7 +22,7 @@ contract PauserRole is IAdmin {
     }
 
     modifier onlyPauser() {
-        require(isPauser(msg.sender));
+        require(isPauser(msg.sender), "Not authorized. Must be a Pauser.");
         _;
     }
 

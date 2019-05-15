@@ -37,7 +37,7 @@ contract Backend is BackendAdmin {
      * @notice Make sure the caller is an allowed frontend.
      */
     modifier onlyFrontend() {
-        require(isFrontend(msg.sender));
+        require(isFrontend(msg.sender), "Not authorized. Must be a Frontend.");
         _;
     }
 

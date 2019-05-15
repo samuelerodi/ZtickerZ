@@ -23,7 +23,7 @@ contract FrontendAdmin is IAdmin, Ownable {
     }
 
     modifier onlyFrontendAdmin() {
-        require(isFrontendAdmin(msg.sender));
+        require(isFrontendAdmin(msg.sender), "Not authorized. Must be a FrontendAdmin.");
         _;
     }
 
